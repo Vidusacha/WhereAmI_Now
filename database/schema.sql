@@ -61,3 +61,14 @@ CREATE TABLE IF NOT EXISTS user_sessions (
     PRIMARY KEY (session_id, questionnaire_version, question_id),
     FOREIGN KEY (question_id, questionnaire_version) REFERENCES dynamic_questionnaires(id, questionnaire_version)
 );
+
+-- 7. Party Documents
+CREATE TABLE IF NOT EXISTS party_documents (
+    id TEXT PRIMARY KEY,
+    party_id TEXT,
+    document_text TEXT NOT NULL,
+    source_url TEXT,
+    published_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (party_id) REFERENCES parties_registry(id)
+);
