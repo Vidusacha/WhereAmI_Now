@@ -3,12 +3,14 @@ import logging
 import json
 import google.generativeai as genai
 import os
+import time
 from datetime import datetime
 from dotenv import load_dotenv
+from utils.logger import setup_audit_logger
 
 load_dotenv()
 
-logger = logging.getLogger(__name__)
+logger = setup_audit_logger(__name__)
 
 def discover_rss_feeds():
     """
@@ -25,15 +27,21 @@ def discover_rss_feeds():
 
     try:
         genai.configure(api_key=api_key)
-        model_name = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+        model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
         model = genai.GenerativeModel(model_name)
         prompt = (
             "Provide exactly 5 to 7 popular Israeli news RSS feed URLs. "
             "Ensure the list includes sources in Hebrew, English (e.g., Jerusalem Post, Times of Israel), "
             "and Russian (e.g., Newsru.co.il, Vesty.co.il). "
-            "Return ONLY a valid JSON array of strings containing the URLs. Do not include markdown formatting or explanations."
+            "Return ONLY a valid JSON array of URLs like [\"http://...\"]. No markdown formatting or backticks."
         )
+        
+        start_time = time.time()
+        logger.debug(f"[API CALL START] RSS discovery with {model_name}")
         response = model.generate_content(prompt)
+        duration = time.time() - start_time
+        logger.debug(f"[API CALL END] Discovery took {duration:.2f}s")
+        
         text = response.text.replace('```json', '').replace('```', '').strip()
         feeds = json.loads(text)
         if isinstance(feeds, list) and len(feeds) > 0:

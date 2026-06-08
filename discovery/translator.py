@@ -1,12 +1,14 @@
 import os
 import logging
 import json
+import time
 import google.generativeai as genai
 from dotenv import load_dotenv
+from utils.logger import setup_audit_logger
 
 load_dotenv()
 
-logger = logging.getLogger(__name__)
+logger = setup_audit_logger(__name__)
 
 def setup_gemini():
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -24,10 +26,16 @@ def translate_to_en(text: str) -> str:
         
     try:
         setup_gemini()
-        model_name = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+        model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
         model = genai.GenerativeModel(model_name)
         prompt = f"Translate the following text to English. If it is already in English, return the original text. Return ONLY the English translation, no other text:\n\n{text}"
+        
+        start_time = time.time()
+        logger.debug(f"[API CALL START] Translating text with {model_name}")
         response = model.generate_content(prompt)
+        duration = time.time() - start_time
+        logger.debug(f"[API CALL END] Translation took {duration:.2f}s. Result length: {len(response.text)}")
+        
         return response.text.strip()
     except Exception as e:
         logger.error(f"Gemini Translation failed: {e}")

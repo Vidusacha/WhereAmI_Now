@@ -21,3 +21,6 @@ whereami_core.db-shm
 # IDEs
 .vscode/
 .idea/
+
+# Logs
+logs/

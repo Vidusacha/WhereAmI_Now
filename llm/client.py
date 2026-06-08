@@ -2,9 +2,11 @@ import os
 import logging
 from openai import OpenAI
 
+import time
+from utils.logger import setup_audit_logger
+
 # Configure basic logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logger = setup_audit_logger(__name__)
 
 # LM Studio default port is 1234
 LM_STUDIO_BASE_URL = os.environ.get("LM_STUDIO_BASE_URL", "http://localhost:1234/v1")
@@ -25,6 +27,8 @@ def generate_completion(client: OpenAI, system_prompt: str, user_prompt: str, mo
     Sends a prompt to the local LLM and returns the text response.
     """
     try:
+        start_time = time.time()
+        logger.debug(f"[API CALL START] Local LLM chat.completions.create with model '{model}'")
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -33,6 +37,8 @@ def generate_completion(client: OpenAI, system_prompt: str, user_prompt: str, mo
             ],
             temperature=temperature,
         )
+        duration = time.time() - start_time
+        logger.debug(f"[API CALL END] Local LLM responded in {duration:.2f}s")
         return response.choices[0].message.content
     except Exception as e:
         logger.error(f"Error communicating with local LLM: {e}")

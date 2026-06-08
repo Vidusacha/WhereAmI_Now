@@ -17,8 +17,9 @@ from discovery.translator import translate_batch
 from llm.client import get_llm_client, generate_completion
 from database.init_db import get_connection
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+from utils.logger import setup_audit_logger
+
+logger = setup_audit_logger(__name__)
 
 PROMPT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'prompts', 'discovery_prompt.txt')
 
