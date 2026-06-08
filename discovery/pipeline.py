@@ -15,6 +15,7 @@ load_dotenv()
 from discovery.rss_parser import fetch_daily_news
 from discovery.tavily_search import search_political_news
 from discovery.translator import translate_batch
+from discovery.initial_loader import sync_wikipedia_parties
 from llm.client import get_llm_client, generate_completion
 from database.init_db import get_connection
 
@@ -46,6 +47,9 @@ def get_or_create_party(conn, party_name):
 
 def run_pipeline():
     logger.info("Starting Daily Discovery Pipeline")
+    
+    # 0. Initial Load (Pre-warm registry if Wikipedia updated)
+    sync_wikipedia_parties()
     
     # 1. Fetch news
     logger.info("=== ALGORITHM STEP 1: Fetching Daily News ===")

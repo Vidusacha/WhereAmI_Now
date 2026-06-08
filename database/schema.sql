@@ -72,3 +72,8 @@ CREATE TABLE IF NOT EXISTS party_documents (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (party_id) REFERENCES parties_registry(id)
 );
+CREATE TABLE IF NOT EXISTS sync_metadata (
+    source_url TEXT PRIMARY KEY,
+    last_etag TEXT,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
