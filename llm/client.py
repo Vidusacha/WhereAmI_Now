@@ -28,7 +28,9 @@ def generate_completion(client: OpenAI, system_prompt: str, user_prompt: str, mo
     """
     try:
         start_time = time.time()
-        logger.debug(f"[API CALL START] Local LLM chat.completions.create with model '{model}'")
+        logger.debug(f"[API CALL START] Endpoint: POST {client.base_url}chat/completions | Model: '{model}'")
+        logger.debug(f"Payload: Messages=[{{'role': 'system', 'content': '{system_prompt[:150]}...[TRUNCATED]...'}}, {{'role': 'user', 'content': '{user_prompt[:150]}...[TRUNCATED]...'}}]")
+        
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -38,7 +40,8 @@ def generate_completion(client: OpenAI, system_prompt: str, user_prompt: str, mo
             temperature=temperature,
         )
         duration = time.time() - start_time
-        logger.debug(f"[API CALL END] Local LLM responded in {duration:.2f}s")
+        logger.debug(f"[API CALL END] Endpoint: POST {client.base_url}chat/completions | Duration: {duration:.2f}s")
+        logger.debug(f"Response: {response.choices[0].message.content}")
         return response.choices[0].message.content
     except Exception as e:
         logger.error(f"Error communicating with local LLM: {e}")

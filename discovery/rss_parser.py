@@ -37,10 +37,10 @@ def discover_rss_feeds():
         )
         
         start_time = time.time()
-        logger.debug(f"[API CALL START] RSS discovery with {model_name}")
+        logger.debug(f"[API CALL START] Endpoint: Gemini API (google.generativeai.generate_content) | Model: {model_name} | Prompt:\n{prompt}")
         response = model.generate_content(prompt)
         duration = time.time() - start_time
-        logger.debug(f"[API CALL END] Discovery took {duration:.2f}s")
+        logger.debug(f"[API CALL END] Endpoint: Gemini API | Duration: {duration:.2f}s | Response:\n{response.text}")
         
         text = response.text.replace('```json', '').replace('```', '').strip()
         feeds = json.loads(text)

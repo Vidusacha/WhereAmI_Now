@@ -31,10 +31,10 @@ def translate_to_en(text: str) -> str:
         prompt = f"Translate the following text to English. If it is already in English, return the original text. Return ONLY the English translation, no other text:\n\n{text}"
         
         start_time = time.time()
-        logger.debug(f"[API CALL START] Translating text with {model_name}")
+        logger.debug(f"[API CALL START] Endpoint: Gemini API (google.generativeai.generate_content) | Model: {model_name} | Prompt:\n{prompt}")
         response = model.generate_content(prompt)
         duration = time.time() - start_time
-        logger.debug(f"[API CALL END] Translation took {duration:.2f}s. Result length: {len(response.text)}")
+        logger.debug(f"[API CALL END] Endpoint: Gemini API | Duration: {duration:.2f}s | Response length: {len(response.text)} | Response snippet: {response.text[:100]}...")
         
         return response.text.strip()
     except Exception as e:
