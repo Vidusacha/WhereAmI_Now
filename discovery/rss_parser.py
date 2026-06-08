@@ -1,39 +1,68 @@
 import feedparser
 import logging
+import json
+import google.generativeai as genai
+import os
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Default RSS feeds for Israeli news (example URLs)
-FEEDS = {
-    "Ynet": "http://www.ynet.co.il/Integration/StoryRss2.xml",
-    "Haaretz": "https://www.haaretz.co.il/cmlink/1.1479262",
-    "Kan 11": "https://www.kan.org.il/rss/"
-}
+def discover_rss_feeds():
+    """
+    Dynamically discovers Israeli news RSS feeds using Gemini API.
+    """
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        logger.warning("GEMINI_API_KEY not set. Using fallback RSS feeds.")
+        return [
+            "http://www.ynet.co.il/Integration/StoryRss2.xml",
+            "https://www.haaretz.co.il/cmlink/1.1479262",
+            "https://www.kan.org.il/rss/"
+        ]
+
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = (
+            "Provide exactly 3 popular Israeli news RSS feed URLs (e.g., Ynet, Haaretz, Kan 11, Maariv, Jerusalem Post). "
+            "Return ONLY a valid JSON array of strings containing the URLs. Do not include markdown formatting or explanations."
+        )
+        response = model.generate_content(prompt)
+        text = response.text.replace('```json', '').replace('```', '').strip()
+        feeds = json.loads(text)
+        if isinstance(feeds, list) and len(feeds) > 0:
+            logger.info(f"Dynamically discovered {len(feeds)} RSS feeds.")
+            return feeds
+    except Exception as e:
+        logger.error(f"Failed to dynamically discover RSS feeds via Gemini: {e}")
+        
+    return []
 
 def fetch_daily_news():
     """
-    Fetches news from standard Israeli RSS feeds.
+    Fetches news from dynamically discovered Israeli RSS feeds.
     Returns a list of dictionaries containing title, summary, link, and pub_date.
     """
     logger.info("Starting daily news aggregation via RSS.")
     articles = []
     
-    for source, url in FEEDS.items():
+    feed_urls = discover_rss_feeds()
+    
+    for url in feed_urls:
         try:
-            logger.info(f"Fetching from {source}: {url}")
+            logger.info(f"Fetching from: {url}")
             feed = feedparser.parse(url)
             
             for entry in feed.entries[:15]: # Limit to top 15 per source for now
                 articles.append({
-                    "source": source,
+                    "source": url,
                     "title": getattr(entry, "title", ""),
                     "summary": getattr(entry, "summary", ""),
                     "link": getattr(entry, "link", ""),
                     "pub_date": getattr(entry, "published", datetime.now().isoformat())
                 })
         except Exception as e:
-            logger.error(f"Error parsing feed {source}: {e}")
+            logger.error(f"Error parsing feed {url}: {e}")
             
     logger.info(f"Aggregated {len(articles)} articles.")
     return articles
