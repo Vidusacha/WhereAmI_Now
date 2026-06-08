@@ -47,12 +47,14 @@ def run_pipeline():
     logger.info("Starting Daily Discovery Pipeline")
     
     # 1. Fetch news
+    logger.info("=== ALGORITHM STEP 1: Fetching Daily News ===")
     news_items = fetch_daily_news()
     if not news_items:
         logger.warning("No news fetched. Exiting.")
         return
 
     # 2. Prepare text and translate
+    logger.info("=== ALGORITHM STEP 2: Translating News to English ===")
     # We will concatenate the titles and summaries for the LLM context
     texts_to_translate = []
     for item in news_items:
@@ -65,6 +67,7 @@ def run_pipeline():
     daily_summary = "\n\n--- NEWS ITEM ---\n\n".join(translated_texts)
     
     # 3. Call LLM
+    logger.info("=== ALGORITHM STEP 3: LLM Analysis for New Axes and Party Statements ===")
     system_prompt = load_prompt()
     client = get_llm_client()
     
@@ -76,6 +79,7 @@ def run_pipeline():
         return
 
     # 4. Parse LLM response
+    logger.info("=== ALGORITHM STEP 4: Parsing LLM Output ===")
     try:
         # Strip potential markdown blocks if the LLM didn't follow instructions perfectly
         clean_json = response_text.replace('```json', '').replace('```', '').strip()
@@ -90,6 +94,7 @@ def run_pipeline():
     logger.info(f"LLM discovered {len(new_axes)} new axes and {len(statements)} party statements.")
 
     # 5. Database updates
+    logger.info("=== ALGORITHM STEP 5: Database Persistence ===")
     with get_connection() as conn:
         cursor = conn.cursor()
         
