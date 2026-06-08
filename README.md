@@ -27,6 +27,7 @@ WhereAmI_Now aggregates daily news, discovers new political/social dividing line
    - Create a `.env` file based on `.env.example` or just put your keys in `.env`:
    ```env
    GEMINI_API_KEY="your-gemini-api-key"
+   GEMINI_MODEL="gemini-1.5-flash"
    LM_STUDIO_BASE_URL="http://localhost:1234/v1"
    ```
 

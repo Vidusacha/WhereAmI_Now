@@ -25,7 +25,8 @@ def discover_rss_feeds():
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model_name = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+        model = genai.GenerativeModel(model_name)
         prompt = (
             "Provide exactly 5 to 7 popular Israeli news RSS feed URLs. "
             "Ensure the list includes sources in Hebrew, English (e.g., Jerusalem Post, Times of Israel), "

@@ -24,7 +24,8 @@ def translate_to_en(text: str) -> str:
         
     try:
         setup_gemini()
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model_name = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+        model = genai.GenerativeModel(model_name)
         prompt = f"Translate the following text to English. If it is already in English, return the original text. Return ONLY the English translation, no other text:\n\n{text}"
         response = model.generate_content(prompt)
         return response.text.strip()
