@@ -13,6 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 load_dotenv()
 
 from discovery.rss_parser import fetch_daily_news
+from discovery.tavily_search import search_political_news
 from discovery.translator import translate_batch
 from llm.client import get_llm_client, generate_completion
 from database.init_db import get_connection
@@ -48,9 +49,17 @@ def run_pipeline():
     
     # 1. Fetch news
     logger.info("=== ALGORITHM STEP 1: Fetching Daily News ===")
-    news_items, num_feeds = fetch_daily_news()
+    
+    # 1A. RSS Discovery
+    rss_items, num_feeds = fetch_daily_news()
+    
+    # 1B. Tavily Discovery
+    tavily_items = search_political_news()
+    
+    news_items = rss_items + tavily_items
+    
     if not news_items:
-        logger.warning("No news fetched. Exiting.")
+        logger.warning("No news fetched from any source. Exiting.")
         return
 
     # 2. Prepare text and translate
@@ -139,7 +148,9 @@ def run_pipeline():
 
     logger.info(f"Execution Summary:")
     logger.info(f" - RSS Feeds discovered: {num_feeds}")
-    logger.info(f" - Articles fetched & analyzed: {len(news_items)}")
+    logger.info(f" - RSS Articles fetched: {len(rss_items)}")
+    logger.info(f" - Tavily Articles found: {len(tavily_items)}")
+    logger.info(f" - Total Articles analyzed: {len(news_items)}")
     logger.info(f" - New axes discovered today: {len(new_axes)}")
     logger.info(f" - Party statements extracted today: {len(statements)}")
     logger.info(f" - Total parties in registry: {total_parties}")
