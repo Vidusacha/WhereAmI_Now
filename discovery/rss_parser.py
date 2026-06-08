@@ -4,6 +4,9 @@ import json
 import google.generativeai as genai
 import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +27,9 @@ def discover_rss_feeds():
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.5-flash')
         prompt = (
-            "Provide exactly 3 popular Israeli news RSS feed URLs (e.g., Ynet, Haaretz, Kan 11, Maariv, Jerusalem Post). "
+            "Provide exactly 5 to 7 popular Israeli news RSS feed URLs. "
+            "Ensure the list includes sources in Hebrew, English (e.g., Jerusalem Post, Times of Israel), "
+            "and Russian (e.g., Newsru.co.il, Vesty.co.il). "
             "Return ONLY a valid JSON array of strings containing the URLs. Do not include markdown formatting or explanations."
         )
         response = model.generate_content(prompt)

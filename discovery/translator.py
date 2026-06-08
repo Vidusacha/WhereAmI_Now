@@ -2,6 +2,9 @@ import os
 import logging
 import json
 import google.generativeai as genai
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -12,9 +15,9 @@ def setup_gemini():
     else:
         genai.configure(api_key=api_key)
 
-def translate_he_to_en(text: str) -> str:
+def translate_to_en(text: str) -> str:
     """
-    Translates Hebrew text to English using the Gemini API.
+    Translates text (Hebrew/Russian/etc) to English using the Gemini API.
     """
     if not text or not text.strip():
         return ""
@@ -22,7 +25,7 @@ def translate_he_to_en(text: str) -> str:
     try:
         setup_gemini()
         model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = f"Translate the following Hebrew text to English. Return ONLY the English translation, no other text:\n\n{text}"
+        prompt = f"Translate the following text to English. If it is already in English, return the original text. Return ONLY the English translation, no other text:\n\n{text}"
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
@@ -31,7 +34,7 @@ def translate_he_to_en(text: str) -> str:
 
 def translate_batch(texts: list) -> list:
     """
-    Translates a batch of texts.
+    Translates a batch of texts to English.
     """
     logger.info(f"Translating batch of {len(texts)} items using Gemini.")
-    return [translate_he_to_en(t) for t in texts]
+    return [translate_to_en(t) for t in texts]

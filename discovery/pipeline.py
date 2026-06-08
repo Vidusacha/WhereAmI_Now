@@ -4,9 +4,13 @@ import logging
 import json
 import uuid
 from datetime import datetime
+from dotenv import load_dotenv
 
 # Add the project root to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Load environment variables (e.g. GEMINI_API_KEY from .env)
+load_dotenv()
 
 from discovery.rss_parser import fetch_daily_news
 from discovery.translator import translate_batch
