@@ -55,34 +55,38 @@ def discover_rss_feeds():
 def fetch_daily_news():
     """
     Fetches news from dynamically discovered Israeli RSS feeds.
-    Returns a list of dictionaries containing title, summary, link, and pub_date.
+    Returns a tuple of (all_items, len(feeds)).
     """
     logger.info("Starting daily news aggregation via RSS.")
-    articles = []
     
-    feed_urls = discover_rss_feeds()
+    feeds = discover_rss_feeds()
+    if not feeds:
+        logger.warning("Could not discover any RSS feeds.")
+        return [], 0
+
+    all_items = []
     
-    for url in feed_urls:
+    for feed_url in feeds:
         try:
-            logger.info(f"Fetching from: {url}")
-            feed = feedparser.parse(url)
+            logger.info(f"Fetching from: {feed_url}")
+            feed = feedparser.parse(feed_url)
             
             for entry in feed.entries[:15]: # Limit to top 15 per source for now
-                articles.append({
-                    "source": url,
+                all_items.append({
+                    "source": feed_url,
                     "title": getattr(entry, "title", ""),
                     "summary": getattr(entry, "summary", ""),
                     "link": getattr(entry, "link", ""),
                     "pub_date": getattr(entry, "published", datetime.now().isoformat())
                 })
         except Exception as e:
-            logger.error(f"Error parsing feed {url}: {e}")
+            logger.error(f"Failed to fetch from {feed_url}: {e}")
             
-    logger.info(f"Aggregated {len(articles)} articles.")
-    return articles
+    logger.info(f"Aggregated {len(all_items)} articles.")
+    return all_items, len(feeds)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    news = fetch_daily_news()
+    news, feed_count = fetch_daily_news()
     for n in news[:3]:
         print(n)

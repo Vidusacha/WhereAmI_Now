@@ -48,7 +48,7 @@ def run_pipeline():
     
     # 1. Fetch news
     logger.info("=== ALGORITHM STEP 1: Fetching Daily News ===")
-    news_items = fetch_daily_news()
+    news_items, num_feeds = fetch_daily_news()
     if not news_items:
         logger.warning("No news fetched. Exiting.")
         return
@@ -127,6 +127,23 @@ def run_pipeline():
         
         conn.commit()
         logger.info("Database updates completed.")
+
+    # 6. Final Summary
+    logger.info("=== ALGORITHM STEP 6: Execution Summary ===")
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM parties_registry")
+        total_parties = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM axes_dictionary")
+        total_axes = cursor.fetchone()[0]
+
+    logger.info(f"Execution Summary:")
+    logger.info(f" - RSS Feeds discovered: {num_feeds}")
+    logger.info(f" - Articles fetched & analyzed: {len(news_items)}")
+    logger.info(f" - New axes discovered today: {len(new_axes)}")
+    logger.info(f" - Party statements extracted today: {len(statements)}")
+    logger.info(f" - Total parties in registry: {total_parties}")
+    logger.info(f" - Total axes in dictionary: {total_axes}")
 
 if __name__ == "__main__":
     run_pipeline()
