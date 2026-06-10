@@ -24,3 +24,6 @@ whereami_core.db-shm
 
 # Logs
 logs/
+
+# Local Tracker
+task.md
