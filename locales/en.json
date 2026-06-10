@@ -1,13 +1,13 @@
 {
-    "title": "🧭 WhereAmI Now?",
+    "title": "Where am I today on the Israeli political map?",
     "subtitle": "Discover which Israeli political party truly aligns with your views today, powered by real-time AI analysis.",
-    "scan_button": "Scan for News & Update Political Map",
+    "scan_button": "Scan News 🔄",
     "scan_in_progress": "Scanning news and updating the AI political map. This takes a few minutes...",
     "scan_complete": "Map updated successfully!",
     "last_updated": "Your political map was updated at {time} for the last time",
     "parties_listed": "{total} parties listed",
     "parties_added": "{added} added from the last scan",
-    "next_btn": "Next Question ➡️",
+    "next_btn": "Next Page ➡️",
     "prev_btn": "⬅️ Previous",
     "submit_btn": "Calculate My Match",
     "agree": "Agree",
@@ -19,5 +19,6 @@
     "start_over": "Start Over",
     "view_details": "View Details",
     "match_distance_desc": "The mathematical distance between your answers and {party}'s simulated positions resulted in a {score}% match.",
-    "question_progress": "Question {current} of {total}"
+    "question_progress": "Question {current} of {total}",
+    "you": "You"
 }

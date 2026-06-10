@@ -1,14 +1,14 @@
 {
-    "title": "🧭 WhereAmI Now?",
+    "title": "איפה אני היום במפה הפוליטית בישראל?",
     "subtitle": "גלה איזו מפלגה פוליטית ישראלית באמת תואמת את ההשקפות שלך היום, מופעל על ידי בינה מלאכותית.",
-    "scan_button": "סרוק חדשות ועדכן את המפה הפוליטית",
+    "scan_button": "סרוק חדשות 🔄",
     "scan_in_progress": "סורק חדשות ומעדכן את המפה הפוליטית. זה ייקח כמה דקות...",
     "scan_complete": "המפה עודכנה בהצלחה!",
     "last_updated": "המפה הפוליטית שלך עודכנה לאחרונה בשעה {time}",
     "parties_listed": "{total} מפלגות מופיעות ברשימה",
     "parties_added": "{added} מפלגות נוספו מהסריקה האחרונה",
-    "next_btn": "שאלה הבאה ⬅️",
-    "prev_btn": "➡️ הקודם",
+    "next_btn": "עמוד הבא ➡️",
+    "prev_btn": "⬅️ הקודם",
     "submit_btn": "חשב את ההתאמה שלי",
     "agree": "מסכים",
     "disagree": "לא מסכים",
@@ -18,6 +18,7 @@
     "disagree_on": "לא מסכים על:",
     "start_over": "התחל מחדש",
     "view_details": "צפה בפרטים",
-    "match_distance_desc": "המרחק המתמטי בין התשובות שלך לעמדות של {party} הניב התאמה של {score}%.",
-    "question_progress": "שאלה {current} מתוך {total}"
+    "match_distance_desc": "המרחק המתמטי בין התשובות שלך לעמדות הסימולציה של מפלגת {party} הניב התאמה של {score}%.",
+    "question_progress": "שאלה {current} מתוך {total}",
+    "you": "את/ה"
 }
