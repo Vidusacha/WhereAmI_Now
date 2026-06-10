@@ -5,7 +5,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'whereami_core.db')
+DB_PATH = os.path.join(os.path.dirname(__file__), 'whereami_core.db')
 
 def update_db():
     logger.info(f"Applying Phase 2 schema updates to {DB_PATH}")

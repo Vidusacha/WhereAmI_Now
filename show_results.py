@@ -3,7 +3,7 @@ import os
 import argparse
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'whereami_core.db')
+DB_PATH = os.path.join(os.path.dirname(__file__), 'database', 'whereami_core.db')
 
 def show_results(date_filter=None, show_scores=False):
     if not os.path.exists(DB_PATH):
