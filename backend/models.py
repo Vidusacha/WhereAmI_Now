@@ -11,6 +11,12 @@ class ApprovalStatus(enum.Enum):
     REJECTED = "rejected"
     ARCHIVED = "archived"
 
+class EntityType(enum.Enum):
+    PARTY = "party"
+    LIST = "list"
+    MOVEMENT = "movement"
+    POLITICIAN = "politician"
+
 class Axis(Base):
     __tablename__ = "axes"
     id = Column(String, primary_key=True) # e.g., "economy"
@@ -23,24 +29,25 @@ class Axis(Base):
     
     # Relationships
     questions = relationship("Question", back_populates="axis")
-    party_scores = relationship("PartyScore", back_populates="axis")
+    entity_scores = relationship("EntityScore", back_populates="axis")
 
-class Party(Base):
-    __tablename__ = "parties"
+class PoliticalEntity(Base):
+    __tablename__ = "political_entities"
     id = Column(String, primary_key=True)
     name_en = Column(String, nullable=False, unique=True)
     name_ru = Column(String, nullable=False, unique=True)
     name_he = Column(String, nullable=False, unique=True)
     status = Column(Enum(ApprovalStatus), default=ApprovalStatus.PENDING_AI_PROPOSAL)
+    entity_type = Column(Enum(EntityType), default=EntityType.PARTY)
     
-    # NEW: Offline Storage Path (Ready for S3)
-    local_storage_folder = Column(String, nullable=True) # e.g., "/data/parties/likud/"
+    # Offline Storage Path (Ready for S3)
+    local_storage_folder = Column(String, nullable=True) # e.g., "/data/entities/likud/"
     
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    scores = relationship("PartyScore", back_populates="party")
-    documents = relationship("ScrapedDocument", back_populates="party")
+    scores = relationship("EntityScore", back_populates="entity")
+    documents = relationship("ScrapedDocument", back_populates="entity")
 
 class StaticSource(Base):
     __tablename__ = "static_sources"
@@ -54,14 +61,14 @@ class StaticSource(Base):
 class ScrapedDocument(Base):
     __tablename__ = "scraped_documents"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    party_id = Column(String, ForeignKey("parties.id"), nullable=True)
+    entity_id = Column(String, ForeignKey("political_entities.id"), nullable=True)
     axis_id = Column(String, ForeignKey("axes.id"), nullable=True)
     static_source_id = Column(Integer, ForeignKey("static_sources.id"), nullable=True) # If it came from a static source
     source_url = Column(String, nullable=False)
     file_path = Column(String, nullable=False) # Local or S3 path to the PDF/HTML
     scraped_at = Column(DateTime, default=datetime.utcnow)
     
-    party = relationship("Party", back_populates="documents")
+    entity = relationship("PoliticalEntity", back_populates="documents")
     static_source = relationship("StaticSource")
 
 class Question(Base):
@@ -76,14 +83,14 @@ class Question(Base):
     
     axis = relationship("Axis", back_populates="questions")
 
-class PartyScore(Base):
-    __tablename__ = "party_scores"
+class EntityScore(Base):
+    __tablename__ = "entity_scores"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    party_id = Column(String, ForeignKey("parties.id"))
+    entity_id = Column(String, ForeignKey("political_entities.id"))
     axis_id = Column(String, ForeignKey("axes.id"))
     score = Column(Float, nullable=False) # e.g., -1.0 to 1.0
     confidence = Column(Float, nullable=True) # How confident AI is based on documents
     justification_en = Column(Text) # AI reasoning
     
-    party = relationship("Party", back_populates="scores")
-    axis = relationship("Axis", back_populates="party_scores")
+    entity = relationship("PoliticalEntity", back_populates="scores")
+    axis = relationship("Axis", back_populates="entity_scores")
