@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes import parties, axes, sources
+from api.routes import entities, axes, sources, questions, documents
 
 app = FastAPI(title="WhereAmI V2 API", version="2.0.0")
 
@@ -12,8 +12,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(parties.router, prefix="/api/parties", tags=["Parties"])
+app.include_router(entities.router, prefix="/api/entities", tags=["Entities"])
 app.include_router(axes.router, prefix="/api/axes", tags=["Axes"])
+app.include_router(questions.router, prefix="/api/questions", tags=["Questions"])
+app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
 app.include_router(sources.router, prefix="/api/sources", tags=["Static Sources"])
 
 @app.get("/api/health")

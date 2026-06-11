@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from models import ApprovalStatus
+from models import ApprovalStatus, EntityType
 
 class AxisBase(BaseModel):
     id: str
@@ -19,19 +19,36 @@ class AxisResponse(AxisBase):
     class Config:
         from_attributes = True
 
-class PartyBase(BaseModel):
+class PoliticalEntityBase(BaseModel):
     id: str
     name_en: str
     name_ru: str
     name_he: str
+    entity_type: EntityType = EntityType.PARTY
 
-class PartyCreate(PartyBase):
+class PoliticalEntityCreate(PoliticalEntityBase):
     pass
 
-class PartyResponse(PartyBase):
+class PoliticalEntityResponse(PoliticalEntityBase):
     status: ApprovalStatus
-    local_storage_folder: Optional[str]
+    local_storage_folder: Optional[str] = None
     created_at: datetime
+    class Config:
+        from_attributes = True
+
+class QuestionBase(BaseModel):
+    axis_id: str
+    text_en: str
+    text_ru: str
+    text_he: str
+    questionnaire_version: str = "v2.0"
+
+class QuestionCreate(QuestionBase):
+    pass
+
+class QuestionResponse(QuestionBase):
+    id: int
+    status: ApprovalStatus
     class Config:
         from_attributes = True
 
