@@ -11,11 +11,15 @@ class ApprovalStatus(enum.Enum):
     REJECTED = "rejected"
     ARCHIVED = "archived"
 
-class EntityType(enum.Enum):
-    PARTY = "party"
-    LIST = "list"
-    MOVEMENT = "movement"
-    POLITICIAN = "politician"
+class EntityType(Base):
+    __tablename__ = "entity_types"
+    id = Column(String, primary_key=True) # e.g., "party", "list"
+    name_en = Column(String, nullable=False)
+    name_ru = Column(String, nullable=False)
+    name_he = Column(String, nullable=False)
+    
+    # Relationships
+    entities = relationship("PoliticalEntity", back_populates="entity_type_rel")
 
 class Axis(Base):
     __tablename__ = "axes"
@@ -26,6 +30,7 @@ class Axis(Base):
     description = Column(Text)
     status = Column(Enum(ApprovalStatus), default=ApprovalStatus.PENDING_AI_PROPOSAL)
     created_at = Column(DateTime, default=datetime.utcnow)
+    last_modified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     questions = relationship("Question", back_populates="axis")
@@ -38,16 +43,22 @@ class PoliticalEntity(Base):
     name_ru = Column(String, nullable=False, unique=True)
     name_he = Column(String, nullable=False, unique=True)
     status = Column(Enum(ApprovalStatus), default=ApprovalStatus.PENDING_AI_PROPOSAL)
-    entity_type = Column(Enum(EntityType), default=EntityType.PARTY)
+    entity_type_id = Column(String, ForeignKey("entity_types.id"), nullable=True)
+    
+    # Extra Details
+    ballot_letters = Column(String, nullable=True) # אותיות
+    chairperson = Column(String, nullable=True) # יושב ראש
     
     # Offline Storage Path (Ready for S3)
     local_storage_folder = Column(String, nullable=True) # e.g., "/data/entities/likud/"
     
     created_at = Column(DateTime, default=datetime.utcnow)
+    last_modified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     scores = relationship("EntityScore", back_populates="entity")
     documents = relationship("ScrapedDocument", back_populates="entity")
+    entity_type_rel = relationship("EntityType", back_populates="entities")
 
 class StaticSource(Base):
     __tablename__ = "static_sources"
@@ -57,6 +68,7 @@ class StaticSource(Base):
     last_scraped_at = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    last_modified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class ScrapedDocument(Base):
     __tablename__ = "scraped_documents"

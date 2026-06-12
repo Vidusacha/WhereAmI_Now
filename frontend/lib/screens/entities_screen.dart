@@ -10,6 +10,7 @@ class EntitiesScreen extends StatefulWidget {
 
 class _EntitiesScreenState extends State<EntitiesScreen> {
   List<dynamic> _entities = [];
+  List<dynamic> _entityTypes = [];
   bool _isLoading = true;
 
   @override
@@ -22,7 +23,11 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
     setState(() => _isLoading = true);
     try {
       final data = await ApiService.getEntities();
-      setState(() => _entities = data);
+      final typesData = await ApiService.getEntityTypes();
+      setState(() {
+        _entities = data;
+        _entityTypes = typesData;
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -33,47 +38,72 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
   }
 
   Future<void> _showAddDialog() async {
-    final idController = TextEditingController();
     final nameEnController = TextEditingController();
     final nameRuController = TextEditingController();
     final nameHeController = TextEditingController();
+    String? selectedTypeId;
+    
+    if (_entityTypes.isNotEmpty) {
+      selectedTypeId = _entityTypes.first['id'];
+    }
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Entity'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: idController, decoration: const InputDecoration(labelText: 'ID (e.g. likud)')),
-            TextField(controller: nameEnController, decoration: const InputDecoration(labelText: 'Name (EN)')),
-            TextField(controller: nameRuController, decoration: const InputDecoration(labelText: 'Name (RU)')),
-            TextField(controller: nameHeController, decoration: const InputDecoration(labelText: 'Name (HE)')),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await ApiService.createEntity({
-                  'id': idController.text,
-                  'name_en': nameEnController.text,
-                  'name_ru': nameRuController.text,
-                  'name_he': nameHeController.text,
-                  'entity_type': 'party' // Default
-                });
-                if (mounted) Navigator.pop(context);
-                _loadData();
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                }
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Add Entity'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: nameEnController, decoration: const InputDecoration(labelText: 'Name (EN)')),
+                TextField(controller: nameRuController, decoration: const InputDecoration(labelText: 'Name (RU)')),
+                TextField(controller: nameHeController, decoration: const InputDecoration(labelText: 'Name (HE)')),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedTypeId,
+                  decoration: const InputDecoration(labelText: 'Type'),
+                  items: _entityTypes.map((type) {
+                    return DropdownMenuItem<String>(
+                      value: type['id'],
+                      child: Text(type['name_en']),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    setDialogState(() => selectedTypeId = val);
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    String generatedId = nameEnController.text.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+                    if (generatedId.isEmpty) {
+                      generatedId = 'entity_${DateTime.now().millisecondsSinceEpoch}';
+                    }
+                    await ApiService.createEntity({
+                      'id': generatedId,
+                      'name_en': nameEnController.text,
+                      'name_ru': nameRuController.text,
+                      'name_he': nameHeController.text,
+                      'entity_type_id': selectedTypeId
+                    });
+                    if (mounted) Navigator.pop(context);
+                    _loadData();
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                    }
+                  }
+                },
+                child: const Text('Add'),
+              ),
+            ],
+          );
+        }
       ),
     );
   }
@@ -102,7 +132,7 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
                   cells: [
                     DataCell(Text(e['id'])),
                     DataCell(Text(e['name_en'])),
-                    DataCell(Text(e['entity_type'] ?? 'party')),
+                    DataCell(Text(e['entity_type_id'] ?? 'party')),
                     DataCell(Text(e['status'])),
                     DataCell(Row(
                       children: [

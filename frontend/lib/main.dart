@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'screens/admin_shell.dart';
 import 'screens/entities_screen.dart';
+import 'screens/entity_types_screen.dart';
 import 'screens/axes_screen.dart';
 import 'screens/questions_screen.dart';
 import 'screens/documents_screen.dart';
@@ -22,6 +23,10 @@ final _router = GoRouter(
         GoRoute(
           path: '/entities',
           builder: (context, state) => const EntitiesScreen(),
+        ),
+        GoRoute(
+          path: '/entity-types',
+          builder: (context, state) => const EntityTypesScreen(),
         ),
         GoRoute(
           path: '/axes',

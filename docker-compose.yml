@@ -30,15 +30,17 @@ services:
   backend:
     build:
       context: ./backend
+    env_file:
+      - .env
     environment:
       DATABASE_URL: "postgresql+asyncpg://admin:securepassword123@postgres:5432/whereami_db"
       OLLAMA_HOST: "http://host.docker.internal:11434" # To talk to standalone Ollama
-      SEARCH_ENGINE_ID: ${SEARCH_ENGINE_ID}
-      GCP_PROJECT_ID: ${GCP_PROJECT_ID}
     volumes:
       - ./backend:/app
     depends_on:
       - postgres
+    ports:
+      - "8000:8000"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=PathPrefix(`/api`)"
@@ -49,6 +51,8 @@ services:
       context: ./frontend
     depends_on:
       - backend
+    ports:
+      - "3000:80"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=PathPrefix(`/`)"

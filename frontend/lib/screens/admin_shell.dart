@@ -23,12 +23,15 @@ class AdminShell extends StatelessWidget {
                   context.go('/entities');
                   break;
                 case 1:
-                  context.go('/axes');
+                  context.go('/entity-types');
                   break;
                 case 2:
-                  context.go('/questions');
+                  context.go('/axes');
                   break;
                 case 3:
+                  context.go('/questions');
+                  break;
+                case 4:
                   context.go('/documents');
                   break;
               }
@@ -38,6 +41,10 @@ class AdminShell extends StatelessWidget {
               NavigationRailDestination(
                 icon: Icon(Icons.group),
                 label: Text('Entities'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.category),
+                label: Text('Entity Types'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.explore),

@@ -57,18 +57,17 @@ class ApiService {
     if (response.statusCode != 200) throw Exception('Failed to create question');
   }
 
-  static Future<Map<String, dynamic>> getDocumentTree() async {
-    final response = await http.get(Uri.parse('$baseUrl/documents/tree'));
+  static Future<Map<String, dynamic>> getDocumentTree(String entityId) async {
+    final response = await http.get(Uri.parse('$baseUrl/documents/tree/$entityId'));
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
     throw Exception('Failed to load document tree');
   }
 
-  static Future<void> uploadDocument(PlatformFile file, String? entityId) async {
-    var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/documents/upload'));
+  static Future<void> uploadDocument(PlatformFile file, String entityId) async {
+    var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/documents/upload/$entityId'));
     
-    // Add file
     if (file.bytes != null) {
       request.files.add(http.MultipartFile.fromBytes(
         'file', 
@@ -77,13 +76,33 @@ class ApiService {
       ));
     }
     
-    if (entityId != null) {
-      request.fields['entity_id'] = entityId;
-    }
-
     var streamedResponse = await request.send();
     if (streamedResponse.statusCode != 200) {
       throw Exception('Failed to upload document');
     }
+  }
+
+  static Future<void> triggerScraping(String entityId) async {
+    final response = await http.post(Uri.parse('$baseUrl/documents/scrape/$entityId'));
+    if (response.statusCode != 200) {
+      throw Exception('Failed to trigger scraping');
+    }
+  }
+
+  static Future<List<dynamic>> getEntityTypes() async {
+    final response = await http.get(Uri.parse('$baseUrl/entity_types/'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception('Failed to load entity types');
+  }
+
+  static Future<void> createEntityType(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/entity_types/'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+    if (response.statusCode != 200) throw Exception('Failed to create entity type');
   }
 }
