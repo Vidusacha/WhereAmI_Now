@@ -8,6 +8,8 @@ import 'screens/axes_screen.dart';
 import 'screens/questions_screen.dart';
 import 'screens/documents_screen.dart';
 
+import 'screens/system_screen.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -39,6 +41,10 @@ final _router = GoRouter(
         GoRoute(
           path: '/documents',
           builder: (context, state) => const DocumentsScreen(),
+        ),
+        GoRoute(
+          path: '/system',
+          builder: (context, state) => const SystemScreen(),
         ),
       ],
     ),

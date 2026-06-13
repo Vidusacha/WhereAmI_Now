@@ -23,6 +23,18 @@ WhereAmI_Now aggregates daily news, discovers new political/social dividing line
    pip install -r requirements.txt
    ```
 
+3. ## Custom Protocols for UI
+We use custom registry protocols to allow the web frontend to interact with the host machine:
+- `whereami-ssh://`: Opens the Docker container in a persistent PowerShell window.
+- `whereami-dbeaver://`: Opens DBeaver to connect to the PostgreSQL database.
+- `whereami-folder://`: Opens the Windows File Explorer at a specific directory (e.g., `backend` for scraped docs).
+- `whereami-ollamalog://`: Opens the local Ollama `server.log` using Notepad.
+
+**Note**: You must run the registry scripts to enable these buttons. If they don't work, ensure you run the Powershell setup commands for the registry.
+
+## Local AI Integration
+The backend communicates with a local Ollama instance (running at `http://host.docker.internal:11434` by default) to use Qwen models for natural language processing tasks. Ensure Ollama is installed and running on your host machine.
+
 3. **Configure Environment Variables:**
    - Create a `.env` file based on `.env.example` or just put your keys in `.env`:
    ```env

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes import entities, axes, sources, questions, documents, entity_types
+from api.routes import entities, axes, sources, questions, documents, entity_types, system
 
 app = FastAPI(title="WhereAmI V2 API", version="2.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
@@ -18,6 +18,7 @@ app.include_router(questions.router, prefix="/api/questions", tags=["Questions"]
 app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
 app.include_router(entity_types.router, prefix="/api/entity_types", tags=["Entity Types"])
 app.include_router(sources.router, prefix="/api/sources", tags=["Static Sources"])
+app.include_router(system.router, prefix="/api", tags=["System"])
 
 @app.get("/api/health")
 async def health_check():

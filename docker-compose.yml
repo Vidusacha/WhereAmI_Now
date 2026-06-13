@@ -37,6 +37,7 @@ services:
       OLLAMA_HOST: "http://host.docker.internal:11434" # To talk to standalone Ollama
     volumes:
       - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       - postgres
     ports:

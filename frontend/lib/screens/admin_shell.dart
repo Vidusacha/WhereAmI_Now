@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'system_screen.dart';
 
 class AdminShell extends StatelessWidget {
   final Widget child;
@@ -34,6 +35,9 @@ class AdminShell extends StatelessWidget {
                 case 4:
                   context.go('/documents');
                   break;
+                case 5:
+                  context.go('/system');
+                  break;
               }
             },
             labelType: NavigationRailLabelType.all,
@@ -58,6 +62,10 @@ class AdminShell extends StatelessWidget {
                 icon: Icon(Icons.folder),
                 label: Text('Documents'),
               ),
+              NavigationRailDestination(
+                icon: Icon(Icons.computer),
+                label: Text('System'),
+              ),
             ],
           ),
           const VerticalDivider(thickness: 1, width: 1),
@@ -72,14 +80,20 @@ class AdminShell extends StatelessWidget {
     if (location.startsWith('/entities')) {
       return 0;
     }
-    if (location.startsWith('/axes')) {
+    if (location.startsWith('/entity-types')) {
       return 1;
     }
-    if (location.startsWith('/questions')) {
+    if (location.startsWith('/axes')) {
       return 2;
     }
-    if (location.startsWith('/documents')) {
+    if (location.startsWith('/questions')) {
       return 3;
+    }
+    if (location.startsWith('/documents')) {
+      return 4;
+    }
+    if (location.startsWith('/system')) {
+      return 5;
     }
     return 0;
   }

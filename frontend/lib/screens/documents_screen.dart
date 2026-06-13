@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -153,6 +154,24 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Document Sources'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.folder_open),
+            tooltip: 'Open Downloaded Docs Folder',
+            onPressed: () async {
+              final uri = Uri.parse('whereami-folder://backend');
+              try {
+                await launchUrl(uri);
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Could not open folder: $e')),
+                  );
+                }
+              }
+            },
+          )
+        ],
       ),
       body: Column(
         children: [
