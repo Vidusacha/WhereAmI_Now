@@ -149,47 +149,51 @@ class _SystemScreenState extends State<SystemScreen> {
     required List<Widget> details,
     Widget? trailing,
   }) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = screenWidth > 1400 ? 600.0 : (screenWidth > 1000 ? screenWidth * 0.42 : screenWidth * 0.9);
+
     return Container(
-      width: 400,
+      width: cardWidth,
       margin: const EdgeInsets.only(right: 20, bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFFFBF9FF), // Very light purple/pink tint like the sketch
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.blueGrey.withOpacity(0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: Colors.purple.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Title Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: iconColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(icon, color: iconColor, size: 28),
-                    ),
-                    const SizedBox(width: 16),
-                    Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-                  ],
-                ),
+                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
                 if (trailing != null) trailing,
               ],
             ),
-            const SizedBox(height: 24),
-            ...details,
+            const SizedBox(height: 20),
+            // Icon and Details Row
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: iconColor, size: 36),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: details,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
