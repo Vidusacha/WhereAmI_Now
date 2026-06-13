@@ -53,7 +53,7 @@ async def get_docker_stats():
             mem_mb = mem_usage / (1024 * 1024)
             
             # Logs
-            logs = c.logs(tail=20).decode('utf-8').splitlines()
+            logs = c.logs(tail=20).decode('utf-8', errors='replace').splitlines()
             
             results.append({
                 "id": c.short_id,
@@ -63,7 +63,7 @@ async def get_docker_stats():
                 "cpu_percent": round(cpu_percent, 2),
                 "mem_mb": round(mem_mb, 2),
                 "mem_percent": round(mem_percent, 2),
-                "logs": logs
+                "logs": "\n".join(logs)
             })
             
         return results
