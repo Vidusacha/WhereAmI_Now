@@ -146,8 +146,14 @@ class _SystemScreenState extends State<SystemScreen> {
                 child: Text(_error, style: const TextStyle(color: Colors.red)),
               ),
             
-            // Ollama Card
-            Card(
+            Wrap(
+              spacing: 24,
+              runSpacing: 24,
+              children: [
+                // Ollama Card
+                SizedBox(
+                  width: 450,
+                  child: Card(
               elevation: 4,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -157,7 +163,7 @@ class _SystemScreenState extends State<SystemScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Ollama / Qwen Status', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        const Text('Local Model Status', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                         ElevatedButton.icon(
                           onPressed: () => launchUrl(Uri.parse('whereami-ollamalog://')),
                           icon: const Icon(Icons.description),
@@ -182,91 +188,130 @@ class _SystemScreenState extends State<SystemScreen> {
                                 Text('Models: ${(_ollamaStats!['models'] as List).map((m) => m['name']).join(', ')}', style: const TextStyle(fontSize: 14)),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-
-            // Host Card
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Host Computer Parameters', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Icon(Icons.computer, color: Colors.blueGrey, size: 32),
-                        const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('CPU Usage: ${_hostStats?['cpu_percent'] ?? '?'} %', style: const TextStyle(fontSize: 16)),
-                            Text('RAM: ${_hostStats?['mem_used_mb'] ?? '?'} MB / ${_hostStats?['mem_total_mb'] ?? '?'} MB (${_hostStats?['mem_percent'] ?? '?'}%)', style: const TextStyle(fontSize: 16)),
-                            Text('Disk: ${_hostStats?['disk_used_gb'] ?? '?'} GB / ${_hostStats?['disk_total_gb'] ?? '?'} GB (${_hostStats?['disk_percent'] ?? '?'}%)', style: const TextStyle(fontSize: 16)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 24),
-
-            // Database Card
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('PostgreSQL Database', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Icon(
-                          _dbStats?['status'] == 'Online' ? Icons.check_circle : Icons.error,
-                          color: _dbStats?['status'] == 'Online' ? Colors.green : Colors.red,
-                          size: 32,
-                        ),
-                        const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Status: ${_dbStats?['status'] ?? 'Unknown'}', style: const TextStyle(fontSize: 16)),
-                            Text('Data Size: ${_dbStats?['size'] ?? 'Unknown'}', style: const TextStyle(fontSize: 16)),
-                          ],
-                        ),
-                        const Spacer(),
-                        ElevatedButton.icon(
-                          onPressed: _launchDBeaver,
-                          icon: const Icon(Icons.storage),
-                          label: const Text('Launch DBeaver'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade800,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    elevation: 4,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Local Model Status', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                              ElevatedButton.icon(
+                                onPressed: () => launchUrl(Uri.parse('whereami-ollamalog://')),
+                                icon: const Icon(Icons.description),
+                                label: const Text('Show Log'),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Icon(Icons.smart_toy, color: _ollamaStats?['status'] == 'online' ? Colors.green : Colors.red, size: 32),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Status: ${_ollamaStats?['status'] ?? 'Unknown'}', style: const TextStyle(fontSize: 16)),
+                                    Text('Host: ${_ollamaStats?['host'] ?? '?'}', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                                    if (_ollamaStats?['error'] != null)
+                                      Text('Error: ${_ollamaStats?['error']}', style: const TextStyle(fontSize: 14, color: Colors.red)),
+                                    if (_ollamaStats?['models'] != null)
+                                      Text('Models: ${(_ollamaStats!['models'] as List).map((m) => m['name']).join(', ')}', style: const TextStyle(fontSize: 14)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+            
+                // Host Card
+                SizedBox(
+                  width: 450,
+                  child: Card(
+                    elevation: 4,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Host Computer Parameters', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              const Icon(Icons.computer, color: Colors.blueGrey, size: 32),
+                              const SizedBox(width: 16),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('CPU Usage: ${_hostStats?['cpu_percent'] ?? '?'} %', style: const TextStyle(fontSize: 16)),
+                                  Text('RAM: ${_hostStats?['mem_used_mb'] ?? '?'} MB / ${_hostStats?['mem_total_mb'] ?? '?'} MB (${_hostStats?['mem_percent'] ?? '?'}%)', style: const TextStyle(fontSize: 16)),
+                                  Text('Disk: ${_hostStats?['disk_used_gb'] ?? '?'} GB / ${_hostStats?['disk_total_gb'] ?? '?'} GB (${_hostStats?['disk_percent'] ?? '?'}%)', style: const TextStyle(fontSize: 16)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            
+                // Database Card
+                SizedBox(
+                  width: 450,
+                  child: Card(
+                    elevation: 4,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('PostgreSQL Database', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Icon(
+                                _dbStats?['status']?.toString().toLowerCase() == 'online' ? Icons.check_circle : Icons.error,
+                                color: _dbStats?['status']?.toString().toLowerCase() == 'online' ? Colors.green : Colors.red,
+                                size: 32,
+                              ),
+                              const SizedBox(width: 16),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Status: ${_dbStats?['status'] ?? 'Unknown'}', style: const TextStyle(fontSize: 16)),
+                                  Text('Data Size: ${_dbStats?['size'] ?? '?'}', style: const TextStyle(fontSize: 16)),
+                                ],
+                              ),
+                              const Spacer(),
+                              ElevatedButton.icon(
+                                onPressed: _launchDBeaver,
+                                icon: const Icon(Icons.storage),
+                                label: const Text('Launch DBeaver'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue.shade800,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             
             // Docker Containers Card
             Card(

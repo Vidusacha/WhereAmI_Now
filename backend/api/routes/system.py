@@ -109,6 +109,7 @@ async def get_db_stats(db: AsyncSession = Depends(get_db)):
         db_size = size_res.scalar()
 
         stats = {
+            "status": "Online",
             "size": db_size,
             "tables": [{"name": r.table_name, "rows": r.row_count} for r in rows]
         }
