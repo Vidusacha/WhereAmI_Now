@@ -1,29 +1,32 @@
-# Project WhereAmI_Now: Algorithm Flow (Phase 2 - Daily Discovery)
+# Project WhereAmI_Now: Algorithm Flow (V2 Scraping)
 
-This document describes the exact step-by-step algorithm executed daily by `discovery/pipeline.py`.
-These steps correspond directly to the log statements in `logs/audit.log`.
+This document describes the exact step-by-step algorithm executed for the V2 Web Scraping Pipeline.
+These steps correspond to the orchestrator logic inside ackend/api/services/scraper/orchestrator.py.
 
-## Step 1: Fetching Daily News
-- The pipeline calls the Gemini API to dynamically discover 5-7 relevant Israeli news RSS feeds (in Hebrew, English, and Russian).
-- It parses the RSS feeds and aggregates the top fresh articles (titles and summaries).
+## Step 1: Triggering the Job
+- The Flutter Admin UI sends a POST request to /api/documents/scrape/{entity_id}.
+- FastAPI initializes a background task un_scraping_job to avoid blocking the UI, passing the entity_id and names (English and Hebrew).
 
-## Step 2: Translating News to English
-- The pipeline batches the aggregated articles.
-- It calls the Gemini API to translate any non-English text to English, ensuring a unified context language.
+## Step 2: Generating Search Queries
+- The scraper automatically generates highly targeted search queries in Hebrew.
+- Queries are formatted as [Party Name Hebrew] + "???" (manifesto) and [Party Name Hebrew] + "??? ????? ????" (official website).
 
-## Step 3: LLM Analysis for New Axes and Party Statements
-- All translated articles are concatenated into a single large prompt block.
-- The prompt is sent to the **Local LLM (LM Studio / Mistral)**.
-- The LLM's goal is to detect:
-  1. **New Political Axes (Водоразделы)** based on the daily news context.
-  2. **Party Statements** explicitly mapped to these axes.
+## Step 3: Web Search APIs
+- The pipeline executes searches across two distinct search engines simultaneously to maximize discovery:
+  1. **Google Programmable Search Engine (PSE)**: Fetches the top 3 relevant results from indexed Google search.
+  2. **Tavily Search API**: A specialized AI research search engine that fetches the top 3 contextually relevant results.
+- All discovered URLs are deduplicated into a unique set.
 
-## Step 4: Parsing LLM Output
-- The pipeline extracts the JSON response from the local LLM.
-- It cleans any potential markdown formatting (` ```json ... ``` `).
-- It validates the presence of `new_axes` and `party_statements`.
+## Step 4: Content Downloading & Extraction
+- The orchestrator sanitizes the English party name to create a safe local directory name.
+- For each unique URL:
+  - The download_and_extract function is called.
+  - HTML content is fetched via HTTP requests.
+  - Content is parsed and converted to Markdown to strip away noisy web components.
+  - The cleaned .md file is saved to the local host machine at data/scraped_documents/[Party_Name]/.
 
 ## Step 5: Database Persistence
-- New axes are inserted into the `axes_dictionary` table with `status = 'pending_review'`.
-- Party names mentioned in the statements are checked against the `parties_registry`. If a party doesn't exist, it is created.
-- The specific party statements are inserted into the `party_documents` table, linked to the corresponding party ID.
+- After the files are successfully written to the filesystem, the orchestrator connects to the PostgreSQL database.
+- It iterates over the downloaded files and creates new ScrapedDocument entries in the DB.
+- These DB entries store the entity_id, original source_url, and the relative ile_path.
+- The UI can then immediately reflect the newly scraped documents by querying the API.
