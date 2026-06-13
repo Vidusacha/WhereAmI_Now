@@ -88,6 +88,15 @@ async def upload_document(entity_id: str, file: UploadFile = File(...), db: Asyn
         content = await file.read()
         f.write(content)
         
+    relative_path = os.path.relpath(file_path, DATA_DIR)
+    doc = models.ScrapedDocument(
+        entity_id=entity_id,
+        source_url="Manual Upload",
+        file_path=relative_path
+    )
+    db.add(doc)
+    await db.commit()
+        
     return {"status": "success", "filename": file.filename}
 
 @router.get("/content")

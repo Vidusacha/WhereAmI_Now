@@ -1,10 +1,12 @@
 import os
 from .search import search_google_pse, search_tavily
 from .downloader import download_and_extract
+from database import async_session_maker
+import models
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "../../../../data/scraped_documents")
 
-def run_scraping_job(entity_id: str, entity_name_en: str, entity_name_he: str):
+async def run_scraping_job(entity_id: str, entity_name_en: str, entity_name_he: str):
     """
     Runs the full scraping pipeline for a political entity.
     """
@@ -14,7 +16,7 @@ def run_scraping_job(entity_id: str, entity_name_en: str, entity_name_he: str):
     # Look for official platforms, manifestos, or detailed wikipedia entries
     queries = [
         f"{entity_name_he} מצע", # Hebrew for "manifesto/platform"
-        f"{entity_name_he} מפלגה אתר רשמי", # "party official website"
+        f"{entity_name_he} אתר מפלגה רשמי", # "party official website"
     ]
     
     all_urls = set()
@@ -45,7 +47,19 @@ def run_scraping_job(entity_id: str, entity_name_en: str, entity_name_he: str):
         print(f"Downloading: {url}")
         file_path = download_and_extract(url, save_dir)
         if file_path:
-            downloaded_files.append(file_path)
+            downloaded_files.append((url, file_path))
             
-    print(f"Scraping job complete. Saved {len(downloaded_files)} documents to {save_dir}.")
-    return downloaded_files
+    # 5. Save to DB
+    async with async_session_maker() as session:
+        for url, file_path in downloaded_files:
+            relative_path = os.path.relpath(file_path, DATA_DIR)
+            doc = models.ScrapedDocument(
+                entity_id=entity_id,
+                source_url=url,
+                file_path=relative_path
+            )
+            session.add(doc)
+        await session.commit()
+            
+    print(f"Scraping job complete. Saved {len(downloaded_files)} documents to {save_dir} and DB.")
+    return [fp for _, fp in downloaded_files]
