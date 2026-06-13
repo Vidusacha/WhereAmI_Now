@@ -64,55 +64,134 @@ class _SystemScreenState extends State<SystemScreen> {
     }
   }
 
-  Future<void> _launchDBeaver() async {
-    final Uri url = Uri.parse('whereami-dbeaver://');
-    try {
-      await launchUrl(url, webOnlyWindowName: '_self');
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to launch DBeaver: $e')),
-        );
-      }
-    }
-  }
-
   Future<void> _launchSSH(String containerName) async {
-    final Uri url = Uri.parse('whereami-ssh://$containerName/');
+    final uri = Uri.parse('whereami-ssh://$containerName/');
     try {
-      await launchUrl(url, webOnlyWindowName: '_self');
+      await launchUrl(uri);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to launch SSH: $e')),
+          SnackBar(content: Text('Could not launch SSH terminal: $e')),
         );
       }
     }
   }
 
-  void _showLogsDialog(String containerName, List<dynamic> logs) {
+  Future<void> _launchDBeaver() async {
+    final uri = Uri.parse('whereami-dbeaver://');
+    try {
+      await launchUrl(uri);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch DBeaver: $e')),
+        );
+      }
+    }
+  }
+
+  void _showLogsDialog(String containerName, String logs) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Logs: $containerName'),
-        content: Container(
-          width: 800,
-          height: 400,
-          color: Colors.black87,
-          padding: const EdgeInsets.all(8.0),
-          child: SingleChildScrollView(
-            child: Text(
-              logs.join('\n'),
-              style: const TextStyle(fontFamily: 'monospace', color: Colors.greenAccent, fontSize: 12),
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Logs: $containerName'),
+          content: Container(
+            width: 800,
+            height: 600,
+            color: Colors.black,
+            padding: const EdgeInsets.all(16),
+            child: SingleChildScrollView(
+              child: Text(
+                logs,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  color: Colors.lightGreenAccent,
+                  fontSize: 14,
+                ),
+              ),
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildProgressIndicator(String label, double percent) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 14)),
+        const SizedBox(height: 6),
+        LinearProgressIndicator(
+          value: percent / 100,
+          backgroundColor: Colors.grey.shade200,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            percent > 85 ? Colors.red : (percent > 60 ? Colors.orange : Colors.green),
+          ),
+          minHeight: 8,
+          borderRadius: BorderRadius.circular(4),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required List<Widget> details,
+    Widget? trailing,
+  }) {
+    return Container(
+      width: 400,
+      margin: const EdgeInsets.only(right: 20, bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blueGrey.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: iconColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, color: iconColor, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  ],
+                ),
+                if (trailing != null) trailing,
+              ],
+            ),
+            const SizedBox(height: 24),
+            ...details,
+          ],
+        ),
       ),
     );
   }
@@ -135,252 +214,173 @@ class _SystemScreenState extends State<SystemScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(32.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_error.isNotEmpty)
               Container(
-                padding: const EdgeInsets.all(8),
-                color: Colors.red.shade100,
-                child: Text(_error, style: const TextStyle(color: Colors.red)),
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Text(_error, style: TextStyle(color: Colors.red.shade700)),
               ),
             
             Wrap(
-              spacing: 24,
-              runSpacing: 24,
+              alignment: WrapAlignment.start,
+              crossAxisAlignment: WrapCrossAlignment.start,
               children: [
-                // Ollama Card
-                SizedBox(
-                  width: 450,
-                  child: Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Local Model Status', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                        ElevatedButton.icon(
-                          onPressed: () => launchUrl(Uri.parse('whereami-ollamalog://')),
-                          icon: const Icon(Icons.description),
-                          label: const Text('Show Log'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Icon(Icons.smart_toy, color: _ollamaStats?['status'] == 'online' ? Colors.green : Colors.red, size: 32),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Status: ${_ollamaStats?['status'] ?? 'Unknown'}', style: const TextStyle(fontSize: 16)),
-                              Text('Host: ${_ollamaStats?['host'] ?? '?'}', style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                              if (_ollamaStats?['error'] != null)
-                                Text('Error: ${_ollamaStats?['error']}', style: const TextStyle(fontSize: 14, color: Colors.red)),
-                              if (_ollamaStats?['models'] != null)
-                                Text('Models: ${(_ollamaStats!['models'] as List).map((m) => m['name']).join(', ')}', style: const TextStyle(fontSize: 14)),
-                            ],
-                          ),
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Local Model Status', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                              ElevatedButton.icon(
-                                onPressed: () => launchUrl(Uri.parse('whereami-ollamalog://')),
-                                icon: const Icon(Icons.description),
-                                label: const Text('Show Log'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Icon(Icons.smart_toy, color: _ollamaStats?['status'] == 'online' ? Colors.green : Colors.red, size: 32),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Status: ${_ollamaStats?['status'] ?? 'Unknown'}', style: const TextStyle(fontSize: 16)),
-                                    Text('Host: ${_ollamaStats?['host'] ?? '?'}', style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                                    if (_ollamaStats?['error'] != null)
-                                      Text('Error: ${_ollamaStats?['error']}', style: const TextStyle(fontSize: 14, color: Colors.red)),
-                                    if (_ollamaStats?['models'] != null)
-                                      Text('Models: ${(_ollamaStats!['models'] as List).map((m) => m['name']).join(', ')}', style: const TextStyle(fontSize: 14)),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                // Local Model Card
+                _buildStatCard(
+                  title: 'Local Model Status',
+                  icon: Icons.smart_toy,
+                  iconColor: _ollamaStats?['status'] == 'online' ? Colors.green : Colors.red,
+                  trailing: TextButton.icon(
+                    onPressed: () => launchUrl(Uri.parse('whereami-ollamalog://')),
+                    icon: const Icon(Icons.description, size: 18),
+                    label: const Text('Logs'),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.blue.shade50,
+                      foregroundColor: Colors.blue.shade700,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
+                  details: [
+                    Text('Status: ${_ollamaStats?['status'] ?? 'Unknown'}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 6),
+                    Text('Host: ${_ollamaStats?['host'] ?? '?'}', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                    const SizedBox(height: 12),
+                    if (_ollamaStats?['error'] != null)
+                      Text('Error: ${_ollamaStats?['error']}', style: const TextStyle(fontSize: 14, color: Colors.red)),
+                    if (_ollamaStats?['models'] != null && (_ollamaStats!['models'] as List).isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: Colors.blueGrey.shade50, borderRadius: BorderRadius.circular(6)),
+                        child: Text('Models: ${(_ollamaStats!['models'] as List).map((m) => m['name']).join(', ')}', style: const TextStyle(fontSize: 13, color: Colors.blueGrey)),
+                      )
+                    else if (_ollamaStats?['status'] == 'online')
+                      const Text('No models downloaded.', style: TextStyle(fontSize: 14, color: Colors.orange)),
+                  ],
                 ),
-            
+
                 // Host Card
-                SizedBox(
-                  width: 450,
-                  child: Card(
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Host Computer Parameters', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              const Icon(Icons.computer, color: Colors.blueGrey, size: 32),
-                              const SizedBox(width: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('CPU Usage: ${_hostStats?['cpu_percent'] ?? '?'} %', style: const TextStyle(fontSize: 16)),
-                                  Text('RAM: ${_hostStats?['mem_used_mb'] ?? '?'} MB / ${_hostStats?['mem_total_mb'] ?? '?'} MB (${_hostStats?['mem_percent'] ?? '?'}%)', style: const TextStyle(fontSize: 16)),
-                                  Text('Disk: ${_hostStats?['disk_used_gb'] ?? '?'} GB / ${_hostStats?['disk_total_gb'] ?? '?'} GB (${_hostStats?['disk_percent'] ?? '?'}%)', style: const TextStyle(fontSize: 16)),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                _buildStatCard(
+                  title: 'Host Node',
+                  icon: Icons.computer,
+                  iconColor: Colors.indigo,
+                  details: [
+                    _buildProgressIndicator('CPU Usage', _hostStats?['cpu_percent']?.toDouble() ?? 0.0),
+                    const SizedBox(height: 16),
+                    _buildProgressIndicator('RAM (${_hostStats?['mem_used_mb'] ?? '?'} / ${_hostStats?['mem_total_mb'] ?? '?'} MB)', _hostStats?['mem_percent']?.toDouble() ?? 0.0),
+                    const SizedBox(height: 16),
+                    _buildProgressIndicator('Disk (${_hostStats?['disk_used_gb'] ?? '?'} / ${_hostStats?['disk_total_gb'] ?? '?'} GB)', _hostStats?['disk_percent']?.toDouble() ?? 0.0),
+                  ],
                 ),
-            
-                // Database Card
-                SizedBox(
-                  width: 450,
-                  child: Card(
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('PostgreSQL Database', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Icon(
-                                _dbStats?['status']?.toString().toLowerCase() == 'online' ? Icons.check_circle : Icons.error,
-                                color: _dbStats?['status']?.toString().toLowerCase() == 'online' ? Colors.green : Colors.red,
-                                size: 32,
-                              ),
-                              const SizedBox(width: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Status: ${_dbStats?['status'] ?? 'Unknown'}', style: const TextStyle(fontSize: 16)),
-                                  Text('Data Size: ${_dbStats?['size'] ?? '?'}', style: const TextStyle(fontSize: 16)),
-                                ],
-                              ),
-                              const Spacer(),
-                              ElevatedButton.icon(
-                                onPressed: _launchDBeaver,
-                                icon: const Icon(Icons.storage),
-                                label: const Text('Launch DBeaver'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue.shade800,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+
+                // DB Card
+                _buildStatCard(
+                  title: 'PostgreSQL',
+                  icon: Icons.storage,
+                  iconColor: _dbStats?['status']?.toString().toLowerCase() == 'online' ? Colors.blue : Colors.red,
+                  trailing: ElevatedButton.icon(
+                    onPressed: _launchDBeaver,
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('DBeaver'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade600,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
+                  details: [
+                    Text('Status: ${_dbStats?['status'] ?? 'Unknown'}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 6),
+                    Text('Data Size: ${_dbStats?['size'] ?? '?'}', style: const TextStyle(fontSize: 14)),
+                    const SizedBox(height: 12),
+                    if (_dbStats?['tables'] != null)
+                      Text('${(_dbStats!['tables'] as List).length} Tables Total', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                  ],
                 ),
               ],
             ),
             
             const SizedBox(height: 32),
+            const Text('Docker Containers', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
+            const SizedBox(height: 20),
             
-            // Docker Containers Card
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Docker Containers', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        headingRowColor: MaterialStateProperty.all(Colors.grey.shade200),
-                        columns: const [
-                          DataColumn(label: Text('Container Name')),
-                          DataColumn(label: Text('Status')),
-                          DataColumn(label: Text('CPU %')),
-                          DataColumn(label: Text('Memory (MB)')),
-                          DataColumn(label: Text('Mem %')),
-                          DataColumn(label: Text('Actions')),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(color: Colors.blueGrey.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 5)),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    headingRowColor: MaterialStateProperty.all(Colors.grey.shade50),
+                    dataRowMinHeight: 60,
+                    dataRowMaxHeight: 60,
+                    columns: const [
+                      DataColumn(label: Text('Container Name', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('CPU %', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('Memory (MB)', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('Mem %', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+                    ],
+                    rows: _dockerStats.map((c) {
+                      final isRunning = c['status'] == 'running';
+                      return DataRow(
+                        cells: [
+                          DataCell(Text(c['name'], style: const TextStyle(fontWeight: FontWeight.w600))),
+                          DataCell(
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isRunning ? Colors.green.shade50 : Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: isRunning ? Colors.green.shade200 : Colors.red.shade200),
+                              ),
+                              child: Text(
+                                c['status'],
+                                style: TextStyle(
+                                  color: isRunning ? Colors.green.shade700 : Colors.red.shade700,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          DataCell(Text('${c['cpu_percent']}%')),
+                          DataCell(Text('${c['mem_mb']} MB')),
+                          DataCell(Text('${c['mem_percent']}%')),
+                          DataCell(
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.terminal, color: Colors.blue),
+                                  tooltip: 'SSH Terminal',
+                                  onPressed: () => _launchSSH(c['name']),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.list_alt, color: Colors.blueGrey),
+                                  tooltip: 'View Logs',
+                                  onPressed: () => _showLogsDialog(c['name'], c['logs']),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
-                        rows: _dockerStats.map((c) {
-                          final isRunning = c['status'] == 'running';
-                          return DataRow(
-                            cells: [
-                              DataCell(Text(c['name'], style: const TextStyle(fontWeight: FontWeight.bold))),
-                              DataCell(
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: isRunning ? Colors.green.shade100 : Colors.red.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    c['status'],
-                                    style: TextStyle(
-                                      color: isRunning ? Colors.green.shade800 : Colors.red.shade800,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              DataCell(Text('${c['cpu_percent']}%')),
-                              DataCell(Text('${c['mem_mb']} MB')),
-                              DataCell(Text('${c['mem_percent']}%')),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.terminal, color: Colors.blue),
-                                      tooltip: 'SSH Terminal',
-                                      onPressed: () => _launchSSH(c['name']),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.list_alt, color: Colors.grey),
-                                      tooltip: 'View Logs',
-                                      onPressed: () => _showLogsDialog(c['name'], c['logs']),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
             ),
