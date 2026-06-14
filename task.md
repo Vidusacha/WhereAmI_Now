@@ -20,17 +20,18 @@
   - [x] Setup background task execution in FastAPI for scraping jobs.
   - [x] Ensure ScrapedDocuments persist to DB and map host directory /data to container to avoid data loss.
 
-- [ ] **Step 4: Reverse Axis Search Implementation**
-  - [ ] Implement generate_search_queries using Ollama.
-  - [ ] Implement Google PSE API call to get Top 5 URLs.
-  - [ ] Wire URLs to scraper_service.py for extraction.
-  - [ ] Ollama scores the extracted text and saves to party_scores.
+- [x] **Step 4: Reverse Axis Search Implementation**
+  - [x] Implement generate_search_queries using Ollama.
+  - [x] Implement Google PSE API call to get Top 5 URLs.
+  - [x] Wire URLs to scraper_service.py for extraction.
+  - [x] Ollama scores the extracted text and saves to party_scores.
 
 - [x] **Step 5: Flutter Admin Panel**
   - [x] Scaffold Flutter web project.
   - [x] Build /admin route with Pending items UI.
   - [x] Build /system route with Docker, PostgreSQL, and Host Node monitoring.
   - [x] Integrate custom registry URI handlers for direct SSH, DBeaver, and filesystem access.
+  - [x] Integrate aesthetic document views with document count and last updated dates.
 
 - [ ] **Step 6: Flutter Public Questionnaire**
   - [ ] Rebuild Streamlit logic in Dart.
