@@ -23,6 +23,29 @@ class ApiService {
     if (response.statusCode != 200) throw Exception('Failed to create entity');
   }
 
+  static Future<void> createEntityAuto(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/entities/auto_translate'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+    if (response.statusCode != 200) throw Exception('Failed to auto-translate and create entity');
+  }
+
+  static Future<void> updateEntity(String id, Map<String, dynamic> data) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/entities/$id'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+    if (response.statusCode != 200) throw Exception('Failed to update entity');
+  }
+
+  static Future<void> deleteEntity(String id) async {
+    final response = await http.delete(Uri.parse('$baseUrl/entities/$id'));
+    if (response.statusCode != 200) throw Exception('Failed to delete entity');
+  }
+
   static Future<List<dynamic>> getAxes() async {
     final response = await http.get(Uri.parse('$baseUrl/axes/'));
     if (response.statusCode == 200) {

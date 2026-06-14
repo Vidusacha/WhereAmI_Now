@@ -39,6 +39,44 @@ async def create_entity(entity: PoliticalEntityCreate, db: AsyncSession = Depend
     await db.refresh(db_entity)
     return db_entity
 
+from pydantic import BaseModel
+class AutoTranslateRequest(BaseModel):
+    name: str
+    entity_type_id: str
+    
+from services import ai_service
+import re
+import time
+
+@router.post("/auto_translate", response_model=PoliticalEntityResponse)
+async def create_entity_auto(req: AutoTranslateRequest, db: AsyncSession = Depends(get_db)):
+    translations = await ai_service.translate_entity_name(req.name)
+    
+    name_en = translations.get("name_en", req.name)
+    name_ru = translations.get("name_ru", req.name)
+    name_he = translations.get("name_he", req.name)
+    
+    generated_id = re.sub(r'[^a-z0-9]', '_', name_en.lower().strip())
+    if not generated_id:
+        generated_id = f"entity_{int(time.time() * 1000)}"
+        
+    # check exists
+    result = await db.execute(select(models.PoliticalEntity).where(models.PoliticalEntity.id == generated_id))
+    if result.scalars().first():
+        generated_id = f"{generated_id}_{int(time.time() * 1000)}"
+        
+    db_entity = models.PoliticalEntity(
+        id=generated_id,
+        name_en=name_en,
+        name_ru=name_ru,
+        name_he=name_he,
+        entity_type_id=req.entity_type_id
+    )
+    db.add(db_entity)
+    await db.commit()
+    await db.refresh(db_entity)
+    return db_entity
+
 @router.put("/{entity_id}/approve", response_model=PoliticalEntityResponse)
 async def approve_entity(entity_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(models.PoliticalEntity).where(models.PoliticalEntity.id == entity_id))
@@ -50,4 +88,29 @@ async def approve_entity(entity_id: str, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(entity)
     return entity
+
+@router.put("/{entity_id}", response_model=PoliticalEntityResponse)
+async def update_entity(entity_id: str, entity_in: PoliticalEntityCreate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(models.PoliticalEntity).where(models.PoliticalEntity.id == entity_id))
+    entity = result.scalars().first()
+    if not entity:
+        raise HTTPException(status_code=404, detail="PoliticalEntity not found")
+        
+    for key, value in entity_in.model_dump().items():
+        setattr(entity, key, value)
+        
+    await db.commit()
+    await db.refresh(entity)
+    return entity
+
+@router.delete("/{entity_id}")
+async def delete_entity(entity_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(models.PoliticalEntity).where(models.PoliticalEntity.id == entity_id))
+    entity = result.scalars().first()
+    if not entity:
+        raise HTTPException(status_code=404, detail="PoliticalEntity not found")
+        
+    await db.delete(entity)
+    await db.commit()
+    return {"status": "ok"}
 
