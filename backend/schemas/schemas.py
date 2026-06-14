@@ -46,6 +46,8 @@ class PoliticalEntityResponse(PoliticalEntityBase):
     status: ApprovalStatus
     local_storage_folder: Optional[str] = None
     created_at: datetime
+    doc_count: int = 0
+    last_updated_at: Optional[datetime] = None
     class Config:
         from_attributes = True
 

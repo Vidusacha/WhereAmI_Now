@@ -15,6 +15,7 @@ class DocumentsScreen extends StatefulWidget {
 class _DocumentsScreenState extends State<DocumentsScreen> {
   List<dynamic> _entities = [];
   String? _selectedEntityId;
+  Map<String, dynamic>? _selectedEntity;
   Map<String, dynamic>? _tree;
   bool _isLoading = true;
 
@@ -32,6 +33,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
         _entities = entityData;
         if (_entities.isNotEmpty) {
           _selectedEntityId = _entities[0]['id'];
+          _selectedEntity = _entities[0];
           _loadTree(_selectedEntityId!);
         }
       });
@@ -149,104 +151,206 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     }
   }
 
+  Widget _buildStatCard({
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required List<Widget> details,
+    Widget? trailing,
+  }) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = screenWidth > 1400 ? 600.0 : (screenWidth > 1000 ? screenWidth * 0.42 : screenWidth * 0.9);
+
+    return Container(
+      width: cardWidth,
+      margin: const EdgeInsets.only(right: 20, bottom: 20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBF9FF),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.purple.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                if (trailing != null) trailing,
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: iconColor, size: 36),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: details,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Document Sources'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.folder_open),
-            tooltip: 'Open Downloaded Docs Folder',
-            onPressed: () async {
-              final uri = Uri.parse('whereami-folder://backend');
-              try {
-                await launchUrl(uri);
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Could not open folder: $e')),
-                  );
-                }
-              }
-            },
-          )
-        ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: 'Select Political Entity',
-                    border: OutlineInputBorder(),
-                  ),
-                  value: _selectedEntityId,
-                  items: _entities.map((e) {
-                    return DropdownMenuItem<String>(
-                      value: e['id'],
-                      child: Text('${e['name_en']} (${e['name_he']})'),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _selectedEntityId = val);
-                      _loadTree(val);
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                if (_selectedEntityId != null)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.download),
-                        label: const Text('Start Web Scraping'),
-                        onPressed: _triggerScrape,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                        ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                labelText: 'Select Political Entity',
+                border: OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.white,
+              ),
+              value: _selectedEntityId,
+              items: _entities.map((e) {
+                return DropdownMenuItem<String>(
+                  value: e['id'],
+                  child: Text('${e['name_en']} (${e['name_he']})'),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    _selectedEntityId = val;
+                    _selectedEntity = _entities.firstWhere((e) => e['id'] == val);
+                  });
+                  _loadTree(val);
+                }
+              },
+            ),
+            const SizedBox(height: 24),
+            
+            if (_selectedEntity != null)
+              Wrap(
+                alignment: WrapAlignment.start,
+                crossAxisAlignment: WrapCrossAlignment.start,
+                children: [
+                  _buildStatCard(
+                    title: 'Entity Documents',
+                    icon: Icons.article,
+                    iconColor: Colors.blueAccent,
+                    trailing: TextButton.icon(
+                      onPressed: () async {
+                        final encodedName = Uri.encodeComponent(_selectedEntity!['name_en']);
+                        final uri = Uri.parse('whereami-folder://$encodedName');
+                        try {
+                          await launchUrl(uri);
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not open folder: $e')));
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.folder_open, size: 18),
+                      label: const Text('Open Folder'),
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.blue.shade50,
+                        foregroundColor: Colors.blue.shade700,
                       ),
-                      const SizedBox(width: 16),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.upload_file),
-                        label: const Text('Upload Document'),
-                        onPressed: _uploadFile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Refresh Tree'),
-                        onPressed: () => _loadTree(_selectedEntityId!),
-                      ),
+                    ),
+                    details: [
+                      Text('Scraped Documents: ${_selectedEntity!['doc_count'] ?? 0}', style: const TextStyle(fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Text('Last Updated: ${_selectedEntity!['last_updated_at'] != null ? _selectedEntity!['last_updated_at'].toString().split('.').first.replaceAll('T', ' ') : 'Never'}', style: TextStyle(color: Colors.grey.shade700)),
                     ],
                   ),
-              ],
-            ),
-          ),
-          const Divider(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _tree != null && _tree!['children'] != null && (_tree!['children'] as List).isNotEmpty
-                    ? ListView(
+                  
+                  _buildStatCard(
+                    title: 'Actions',
+                    icon: Icons.settings,
+                    iconColor: Colors.green,
+                    details: [
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
                         children: [
-                          _buildNode(_tree!),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.download),
+                            label: const Text('Start Web Scraping'),
+                            onPressed: _triggerScrape,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.upload_file),
+                            label: const Text('Upload Document'),
+                            onPressed: _uploadFile,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Refresh Tree'),
+                            onPressed: () => _loadTree(_selectedEntityId!),
+                          ),
                         ],
                       )
-                    : const Center(child: Text('No documents found for this entity. Click "Start Web Scraping" to fetch from web.')),
-          ),
-        ],
+                    ]
+                  )
+                ]
+              ),
+              
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 16),
+            
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              constraints: const BoxConstraints(minHeight: 300),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _tree != null && _tree!['children'] != null && (_tree!['children'] as List).isNotEmpty
+                      ? ListView(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: [
+                            _buildNode(_tree!),
+                          ],
+                        )
+                      : const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32.0),
+                            child: Text(
+                              'No documents found for this entity. Click "Start Web Scraping" to fetch from web.',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }

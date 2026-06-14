@@ -10,13 +10,21 @@ from models import ApprovalStatus
 
 router = APIRouter()
 
+from sqlalchemy.orm import selectinload
+
 @router.get("/", response_model=List[PoliticalEntityResponse])
 async def get_entities(status: ApprovalStatus = None, db: AsyncSession = Depends(get_db)):
-    query = select(models.PoliticalEntity)
+    query = select(models.PoliticalEntity).options(selectinload(models.PoliticalEntity.documents))
     if status:
         query = query.where(models.PoliticalEntity.status == status)
     result = await db.execute(query)
-    return result.scalars().all()
+    entities = result.scalars().all()
+    
+    for entity in entities:
+        entity.doc_count = len(entity.documents)
+        entity.last_updated_at = max((d.scraped_at for d in entity.documents if d.scraped_at), default=None)
+        
+    return entities
 
 @router.post("/", response_model=PoliticalEntityResponse)
 async def create_entity(entity: PoliticalEntityCreate, db: AsyncSession = Depends(get_db)):
