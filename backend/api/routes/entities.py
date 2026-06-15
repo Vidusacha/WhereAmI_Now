@@ -5,7 +5,7 @@ from typing import List
 
 from database import get_db
 import models
-from schemas.schemas import PoliticalEntityCreate, PoliticalEntityResponse
+from schemas.schemas import PoliticalEntityCreate, PoliticalEntityResponse, EntityScoreResponse
 from models import ApprovalStatus
 
 router = APIRouter()
@@ -76,6 +76,21 @@ async def create_entity_auto(req: AutoTranslateRequest, db: AsyncSession = Depen
     await db.commit()
     await db.refresh(db_entity)
     return db_entity
+
+@router.get("/{entity_id}/scores", response_model=List[EntityScoreResponse])
+async def get_entity_scores(entity_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(models.EntityScore).where(models.EntityScore.entity_id == entity_id))
+    scores = result.scalars().all()
+    return scores
+
+import os
+@router.get("/{entity_id}/discovery_log")
+async def get_discovery_log(entity_id: str):
+    log_path = f"/data/entities/{entity_id}/discovery_log.txt"
+    if os.path.exists(log_path):
+        with open(log_path, "r", encoding="utf-8") as f:
+            return {"log": f.read()}
+    return {"log": "No discovery log found for this entity. Run 'Discover Discourse' first."}
 
 @router.put("/{entity_id}/approve", response_model=PoliticalEntityResponse)
 async def approve_entity(entity_id: str, db: AsyncSession = Depends(get_db)):

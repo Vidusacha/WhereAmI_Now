@@ -1,0 +1,1 @@
+Some news text about economy

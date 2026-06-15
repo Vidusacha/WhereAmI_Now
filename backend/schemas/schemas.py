@@ -13,6 +13,12 @@ class AxisBase(BaseModel):
 class AxisCreate(AxisBase):
     pass
 
+class AxisUpdate(BaseModel):
+    name_en: Optional[str] = None
+    name_ru: Optional[str] = None
+    name_he: Optional[str] = None
+    description: Optional[str] = None
+
 class AxisResponse(AxisBase):
     status: ApprovalStatus
     created_at: datetime
@@ -81,3 +87,23 @@ class StaticSourceResponse(StaticSourceBase):
     created_at: datetime
     class Config:
         from_attributes = True
+
+class EntityScoreBase(BaseModel):
+    entity_id: str
+    axis_id: str
+    score: float
+    confidence: Optional[float] = None
+    justification_en: Optional[str] = None
+    justification_ru: Optional[str] = None
+    justification_he: Optional[str] = None
+
+class EntityScoreResponse(EntityScoreBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+class DiscoveryResponse(BaseModel):
+    entity_id: str
+    status: str
+    scores: List[EntityScoreResponse]
+    logs: List[str] = []

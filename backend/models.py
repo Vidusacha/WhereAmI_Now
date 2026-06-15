@@ -103,6 +103,8 @@ class EntityScore(Base):
     score = Column(Float, nullable=False) # e.g., -1.0 to 1.0
     confidence = Column(Float, nullable=True) # How confident AI is based on documents
     justification_en = Column(Text) # AI reasoning
+    justification_ru = Column(Text)
+    justification_he = Column(Text)
     
     entity = relationship("PoliticalEntity", back_populates="scores")
     axis = relationship("Axis", back_populates="entity_scores")

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes import entities, axes, sources, questions, documents, entity_types, system
+from api.routes import entities, axes, sources, questions, documents, entity_types, system, discovery, maintenance
 
 app = FastAPI(title="WhereAmI V2 API", version="2.0.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
@@ -17,6 +17,8 @@ app.include_router(axes.router, prefix="/api/axes", tags=["Axes"])
 app.include_router(questions.router, prefix="/api/questions", tags=["Questions"])
 app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
 app.include_router(entity_types.router, prefix="/api/entity_types", tags=["Entity Types"])
+app.include_router(discovery.router, prefix="/api/discovery", tags=["Discovery"])
+app.include_router(maintenance.router, prefix="/api/maintenance", tags=["Maintenance"])
 app.include_router(sources.router, prefix="/api/sources", tags=["Static Sources"])
 app.include_router(system.router, prefix="/api", tags=["System"])
 
