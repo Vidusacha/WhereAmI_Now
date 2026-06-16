@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from database import get_db
 from models import PoliticalEntity, Axis, EntityScore, ApprovalStatus, ScrapedDocument
 from schemas.schemas import DiscoveryResponse
-from services.search_service import search_duckduckgo
+from services.search_service import search_google_pse, fetch_latest_news_rss
 from services.scraper_service import scrape_url
 from services.ai_service import generate_search_queries, score_entity_on_axis, discover_axes_from_texts
 import traceback
@@ -57,9 +57,9 @@ async def discover_discourse(entity_id: str, db: AsyncSession = Depends(get_db))
                 
             logs.append(f"Generated queries: {queries}")
             
-            # 2. Search DuckDuckGo
-            logs.append(f"Searching DuckDuckGo for: '{queries[0]}'")
-            urls = await search_duckduckgo(queries[0], max_results=3)
+            # 2. Search Google PSE
+            logs.append(f"Searching Google PSE for: '{queries[0]}'")
+            urls = await search_google_pse(queries[0], max_results=3)
             logs.append(f"Found URLs: {urls}")
             
             scraped_texts = []
@@ -155,8 +155,8 @@ async def discover_new_axes(db: AsyncSession = Depends(get_db)):
     logs = []
     logs.append("Starting unsupervised axis discovery from recent news...")
     try:
-        urls = await search_duckduckgo("Israeli politics news OR Israel political platforms", max_results=3)
-        logs.append(f"Found generic political news URLs: {urls}")
+        urls = await fetch_latest_news_rss(max_results=3)
+        logs.append(f"Found generic political news URLs from RSS: {urls}")
         
         texts = []
         for url in urls:

@@ -24,16 +24,6 @@ async def cascade_scrape(url: str) -> str:
                 raise Exception("No content found on page.")
             return text[:10000] # Limit to 10k chars to avoid blowing up context
 
-async def execute_pse_search(query: str) -> list:
-    """
-    Placeholder for Google Programmable Search Engine (PSE) query.
-    Returns a list of URLs.
-    """
-    print(f"[STUB] Searching Google PSE for: {query}")
-    return [
-        "https://example.com/mock-article-1",
-        "https://example.com/mock-article-2"
-    ]
 
 import os
 import uuid

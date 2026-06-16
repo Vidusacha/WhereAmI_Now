@@ -15,7 +15,7 @@ async def test_discover_discourse_success(client: AsyncClient, mocker):
 
     # Mock the discovery dependencies
     mocker.patch("api.routes.discovery.generate_search_queries", return_value=["Query 1"])
-    mocker.patch("api.routes.discovery.search_duckduckgo", return_value=["http://example.com"])
+    mocker.patch("api.routes.discovery.search_google_pse", return_value=["http://example.com"])
     
     mock_file = "/app/tests/test_mock_file.md"
     with open(mock_file, "w", encoding="utf-8") as f:
@@ -40,7 +40,7 @@ async def test_discover_discourse_success(client: AsyncClient, mocker):
 
 @pytest.mark.asyncio
 async def test_discover_new_axes(client: AsyncClient, mocker):
-    mocker.patch("api.routes.discovery.search_duckduckgo", return_value=["http://example.com/news"])
+    mocker.patch("api.routes.discovery.fetch_latest_news_rss", return_value=["http://example.com/news"])
     
     mock_file = "/app/tests/test_mock_news.md"
     with open(mock_file, "w", encoding="utf-8") as f:
