@@ -257,7 +257,10 @@ async def discover_axes_from_texts(texts: list[str]) -> list[dict]:
     """
     Analyzes documents to discover underlying political axes.
     """
-    combined_text = "\n\n".join(texts)[:8000]
+    # Take a representative sample from each document (e.g. first 1200 characters)
+    # to fit more documents within the 8000 character limit
+    samples = [t[:1200] for t in texts]
+    combined_text = "\n\n---\n\n".join(samples)[:8000]
     prompt = f"""
     You are an expert political scientist. Read the following political documents and identify 1 to 3 underlying ideological, economic, or social axes (topics/divisions) that these documents touch upon.
     For each axis, provide a short name in English, Russian, and Hebrew, and a brief description in English.

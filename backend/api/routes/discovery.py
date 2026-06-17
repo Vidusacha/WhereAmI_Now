@@ -431,27 +431,73 @@ async def discover_discourse(entity_id: str, db: AsyncSession = Depends(get_db))
 
 @router.post("/axes", response_model=dict)
 async def discover_new_axes(db: AsyncSession = Depends(get_db)):
-    """Unsupervised Axis Discovery: Scrapes general political news and discovers new axes."""
+    """Unsupervised Axis Discovery: Analyzes recent scraped documents or news RSS to discover new axes."""
     logs = []
     logs.append("Starting unsupervised axis discovery from recent news...")
     try:
-        urls = await fetch_latest_news_rss(db=db, max_results=3)
-        logs.append(f"Found generic political news URLs from RSS: {urls}")
+        # 1. Fetch the 15 most recent general news documents
+        query = select(ScrapedDocument).where(
+            (ScrapedDocument.entity_id == None) | (ScrapedDocument.static_source_id != None)
+        ).order_by(ScrapedDocument.scraped_at.desc()).limit(15)
+        
+        result = await db.execute(query)
+        recent_docs = result.scalars().all()
         
         texts = []
-        for url in urls:
-            try:
-                file_path = await scrape_url(url, entity_id="general_news")
-                with open(file_path, "r", encoding="utf-8") as f:
-                    texts.append(f.read())
-                logs.append(f"Successfully scraped: {url}")
-            except Exception as e:
-                logs.append(f"Failed to scrape {url}: {e}")
-                
+        for doc in recent_docs:
+            text = doc.content
+            if not text and doc.file_path:
+                resolved_path = doc.file_path
+                if not resolved_path.startswith("/"):
+                    for root_dir in ["/data/scraped_documents", "/data", "/app/data/scraped_documents"]:
+                        cand = os.path.join(root_dir, resolved_path)
+                        if os.path.exists(cand):
+                            resolved_path = cand
+                            break
+                if os.path.exists(resolved_path):
+                    try:
+                        with open(resolved_path, "r", encoding="utf-8") as f:
+                            text = f.read()
+                    except:
+                        pass
+            if text:
+                texts.append(text)
+                logs.append(f"Analyzing local document: '{doc.title or 'Untitled'}' (Source: {doc.source_url})")
+
+        # 2. Fallback to scraping RSS on the fly if we don't have enough local documents
+        if len(texts) < 3:
+            logs.append("Insufficient local documents. Scraping fresh articles from RSS feeds on the fly...")
+            urls = await fetch_latest_news_rss(db=db, max_results=5)
+            for url in urls:
+                try:
+                    file_path = await scrape_url(url, entity_id="general_news")
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        file_content = f.read()
+                    file_content = file_content.replace("\x00", "").replace("\u0000", "")
+                    
+                    lines = [l.strip() for l in file_content.split("\n") if l.strip()]
+                    doc_title = lines[0].lstrip("#").strip().strip("*") if lines else "Scraped RSS Article"
+                    doc_title = doc_title.replace("\x00", "").replace("\u0000", "")
+                    
+                    new_doc = ScrapedDocument(
+                        entity_id="general_news",
+                        source_url=url,
+                        file_path=file_path,
+                        title=doc_title[:500],
+                        content=file_content
+                    )
+                    db.add(new_doc)
+                    await db.commit()
+                    
+                    texts.append(file_content)
+                    logs.append(f"Scraped and analyzed fresh RSS article: '{doc_title}'")
+                except Exception as e:
+                    logs.append(f"Failed to scrape {url}: {e}")
+
         if not texts:
-            return {"status": "Failed to scrape any news", "logs": logs, "discovered_axes": []}
+            return {"status": "Failed to retrieve any news documents", "logs": logs, "discovered_axes": []}
             
-        logs.append("Sending scraped texts to AI for axis discovery...")
+        logs.append(f"Sending {len(texts)} scraped/retrieved document texts to AI for axis discovery...")
         discovered = await discover_axes_from_texts(texts)
         
         saved_axes = []
@@ -462,7 +508,6 @@ async def discover_new_axes(db: AsyncSession = Depends(get_db)):
                 import re
                 new_id = re.sub(r'[^a-z0-9]', '_', name_en.lower())
                 
-                # Ensure unique id
                 unique_id = new_id
                 counter = 1
                 while (await db.execute(select(Axis).where(Axis.id == unique_id))).scalar_one_or_none():
