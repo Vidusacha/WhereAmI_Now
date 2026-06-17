@@ -4,23 +4,30 @@ import urllib.parse
 import os
 import aiohttp
 import xml.etree.ElementTree as ET
+from sqlalchemy import select
+from models import StaticSource
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# RSS Feeds for Unsupervised Discovery
-RSS_FEEDS = [
-    "https://www.timesofisrael.com/feed/",
-    "https://www.jpost.com/Rss/RssFeedsHeadlines.aspx",
-]
-
-async def fetch_latest_news_rss(max_results: int = 5) -> list:
+async def fetch_latest_news_rss(db: AsyncSession, max_results: int = 5) -> list:
     """
-    Fetches the latest news article URLs from predefined Israeli RSS feeds.
+    Fetches the latest news article URLs from RSS feeds stored in the database.
     Used for unsupervised axis discovery to guarantee fresh political context.
     """
+    query = select(StaticSource).where(
+        StaticSource.source_type == "rss",
+        StaticSource.is_active == True
+    )
+    result = await db.execute(query)
+    rss_sources = result.scalars().all()
+
     urls = []
     headers = {'User-Agent': 'Mozilla/5.0'}
     
-    async with aiohttp.ClientSession(headers=headers) as session:
-        for feed_url in RSS_FEEDS:
+    # Disable SSL verification to support feeds with expired/self-signed certs (e.g. DEBKAfile)
+    connector = aiohttp.TCPConnector(ssl=False)
+    async with aiohttp.ClientSession(headers=headers, connector=connector) as session:
+        for source in rss_sources:
+            feed_url = source.url
             try:
                 async with session.get(feed_url, timeout=10) as response:
                     if response.status == 200:
@@ -65,3 +72,51 @@ async def search_google_pse(query: str, max_results: int = 3) -> list:
         print(f"Error during Google PSE search for '{query}': {e}")
         
     return []
+
+from typing import List
+from models import ScrapedDocument
+import re
+
+async def search_local_documents(
+    entity_name_en: str,
+    entity_name_ru: str,
+    entity_name_he: str,
+    axis_name_en: str,
+    axis_name_ru: str,
+    axis_name_he: str,
+    db: AsyncSession,
+    limit: int = 5
+) -> List[ScrapedDocument]:
+    """
+    Searches the local scraped_documents table in PostgreSQL for keywords matching
+    the political entity and axis.
+    Matches documents containing at least one entity term AND at least one axis term.
+    """
+    entity_terms = [t for t in [entity_name_en, entity_name_ru, entity_name_he] if t]
+    axis_terms = [t for t in [axis_name_en, axis_name_ru, axis_name_he] if t]
+    
+    axis_terms = list(set(axis_terms))
+    
+    if not entity_terms or not axis_terms:
+        return []
+        
+    from sqlalchemy import or_, and_
+    
+    entity_clauses = [ScrapedDocument.content.ilike(f"%{term}%") for term in entity_terms]
+    axis_clauses = [ScrapedDocument.content.ilike(f"%{term}%") for term in axis_terms]
+    
+    entity_title_clauses = [ScrapedDocument.title.ilike(f"%{term}%") for term in entity_terms]
+    axis_title_clauses = [ScrapedDocument.title.ilike(f"%{term}%") for term in axis_terms]
+    
+    query = select(ScrapedDocument).where(
+        and_(
+            or_(*entity_clauses, *entity_title_clauses),
+            or_(*axis_clauses, *axis_title_clauses)
+        )
+    ).order_by(ScrapedDocument.scraped_at.desc()).limit(limit)
+    
+    result = await db.execute(query)
+    matching_docs = result.scalars().all()
+    
+    print(f"Local search found {len(matching_docs)} documents matching entity {entity_name_en} and axis {axis_name_en}")
+    return list(matching_docs)

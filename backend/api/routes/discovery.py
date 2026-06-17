@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from database import get_db
 from models import PoliticalEntity, Axis, EntityScore, ApprovalStatus, ScrapedDocument
 from schemas.schemas import DiscoveryResponse
-from services.search_service import search_google_pse, fetch_latest_news_rss
+from services.search_service import search_google_pse, fetch_latest_news_rss, search_local_documents
 from services.scraper_service import scrape_url
 from services.ai_service import generate_search_queries, score_entity_on_axis, discover_axes_from_texts
 import traceback
@@ -49,44 +49,89 @@ async def discover_discourse(entity_id: str, db: AsyncSession = Depends(get_db))
         axis_name_en = axis.name_en
         try:
             logs.append(f"\n--- Processing Axis: {axis_name_en} ---")
-            # 1. Generate search queries
-            queries = await generate_search_queries(entity_name_en, axis_name_en)
-            if not queries:
-                logs.append("Failed to generate search queries.")
-                continue
-                
-            logs.append(f"Generated queries: {queries}")
             
-            # 2. Search Google PSE
-            logs.append(f"Searching Google PSE for: '{queries[0]}'")
-            urls = await search_google_pse(queries[0], max_results=3)
-            logs.append(f"Found URLs: {urls}")
+            # 1. Search Local Scraped Documents Database first
+            logs.append(f"Searching local documents for entity and axis keywords...")
+            local_docs = await search_local_documents(
+                entity_name_en=entity.name_en,
+                entity_name_ru=entity.name_ru,
+                entity_name_he=entity.name_he,
+                axis_name_en=axis.name_en,
+                axis_name_ru=axis.name_ru,
+                axis_name_he=axis.name_he,
+                db=db,
+                limit=5
+            )
             
             scraped_texts = []
-            for url in urls:
-                # 3. Scrape URL
-                try:
-                    file_path = await scrape_url(url, entity_id=entity_id)
-                    logs.append(f"Successfully scraped: {url}")
+            for doc in local_docs:
+                text = doc.content
+                if not text and doc.file_path:
+                    # Fallback file read
+                    resolved_path = doc.file_path
+                    if not resolved_path.startswith("/"):
+                        for root_dir in ["/data/scraped_documents", "/data", "/app/data/scraped_documents"]:
+                            cand = os.path.join(root_dir, resolved_path)
+                            if os.path.exists(cand):
+                                resolved_path = cand
+                                break
+                    if os.path.exists(resolved_path):
+                        try:
+                            with open(resolved_path, "r", encoding="utf-8") as f:
+                                text = f.read()
+                        except:
+                            pass
+                if text:
+                    scraped_texts.append(text)
                     
-                    new_doc = ScrapedDocument(
-                        entity_id=entity_id,
-                        axis_id=axis_id,
-                        source_url=url,
-                        file_path=file_path
-                    )
-                    db.add(new_doc)
-                    await db.commit()
+            if scraped_texts:
+                logs.append(f"Found {len(scraped_texts)} relevant local documents.")
+            else:
+                logs.append("No local documents matched. Falling back to Google PSE search...")
+                # 2. Fallback: Google PSE Search
+                # Generate search queries
+                queries = await generate_search_queries(entity_name_en, axis_name_en)
+                if not queries:
+                    logs.append("Failed to generate search queries.")
+                    continue
                     
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        scraped_texts.append(f.read())
-                except Exception as e:
-                    logs.append(f"Failed to scrape {url}: {e}")
-                    print(f"Failed to scrape {url}: {e}")
-                    await db.rollback()
-                    
+                logs.append(f"Generated queries: {queries}")
+                logs.append(f"Searching Google PSE for: '{queries[0]}'")
+                urls = await search_google_pse(queries[0], max_results=3)
+                logs.append(f"Found URLs: {urls}")
+                
+                for url in urls:
+                    try:
+                        file_path = await scrape_url(url, entity_id=entity_id)
+                        logs.append(f"Successfully scraped: {url}")
+                        
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            file_content = f.read()
+                            
+                        file_content = file_content.replace("\x00", "").replace("\u0000", "")
+                        lines = [l.strip() for l in file_content.split("\n") if l.strip()]
+                        doc_title = lines[0].lstrip("#").strip().strip("*") if lines else "Scraped Article"
+                        doc_title = doc_title.replace("\x00", "").replace("\u0000", "")
+                        
+                        new_doc = ScrapedDocument(
+                            entity_id=entity_id,
+                            axis_id=axis_id,
+                            source_url=url,
+                            file_path=file_path,
+                            title=doc_title[:500],
+                            content=file_content
+                        )
+                        db.add(new_doc)
+                        await db.commit()
+                        
+                        scraped_texts.append(file_content)
+                    except Exception as e:
+                        logs.append(f"Failed to scrape {url}: {e}")
+                        print(f"Failed to scrape {url}: {e}")
+                        await db.rollback()
+                        
             if not scraped_texts:
-                logs.append("No texts successfully scraped. Skipping AI scoring.")
+                logs.append("No texts found or successfully scraped. Skipping AI scoring.")
                 continue
                 
             # 4. Score Entity
@@ -101,12 +146,34 @@ async def discover_discourse(entity_id: str, db: AsyncSession = Depends(get_db))
             ))
             existing_score = score_res.scalar_one_or_none()
             
+            score_val = ai_result.get("score")
+            if score_val is None:
+                score_val = 0.0
+            else:
+                try:
+                    score_val = float(score_val)
+                except:
+                    score_val = 0.0
+
+            confidence_val = ai_result.get("confidence")
+            if confidence_val is None:
+                confidence_val = 0.0
+            else:
+                try:
+                    confidence_val = float(confidence_val)
+                except:
+                    confidence_val = 0.0
+
+            just_en = ai_result.get("justification_en") or ""
+            just_ru = ai_result.get("justification_ru") or ""
+            just_he = ai_result.get("justification_he") or ""
+
             if existing_score:
-                existing_score.score = ai_result.get("score", 0.0)
-                existing_score.confidence = ai_result.get("confidence", 0.0)
-                existing_score.justification_en = ai_result.get("justification_en", "")
-                existing_score.justification_ru = ai_result.get("justification_ru", "")
-                existing_score.justification_he = ai_result.get("justification_he", "")
+                existing_score.score = score_val
+                existing_score.confidence = confidence_val
+                existing_score.justification_en = just_en
+                existing_score.justification_ru = just_ru
+                existing_score.justification_he = just_he
                 await db.commit()
                 await db.refresh(existing_score)
                 results.append(existing_score)
@@ -115,11 +182,11 @@ async def discover_discourse(entity_id: str, db: AsyncSession = Depends(get_db))
                 new_score = EntityScore(
                     entity_id=entity_id,
                     axis_id=axis_id,
-                    score=ai_result.get("score", 0.0),
-                    confidence=ai_result.get("confidence", 0.0),
-                    justification_en=ai_result.get("justification_en", ""),
-                    justification_ru=ai_result.get("justification_ru", ""),
-                    justification_he=ai_result.get("justification_he", "")
+                    score=score_val,
+                    confidence=confidence_val,
+                    justification_en=just_en,
+                    justification_ru=just_ru,
+                    justification_he=just_he
                 )
                 db.add(new_score)
                 await db.commit()
@@ -155,7 +222,7 @@ async def discover_new_axes(db: AsyncSession = Depends(get_db)):
     logs = []
     logs.append("Starting unsupervised axis discovery from recent news...")
     try:
-        urls = await fetch_latest_news_rss(max_results=3)
+        urls = await fetch_latest_news_rss(db=db, max_results=3)
         logs.append(f"Found generic political news URLs from RSS: {urls}")
         
         texts = []

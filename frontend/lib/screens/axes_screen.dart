@@ -303,17 +303,17 @@ class _AxesScreenState extends State<AxesScreen> {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: Colors.deepPurple,
+            color: Theme.of(context).colorScheme.primary,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.deepPurple.withOpacity(0.4),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: const Icon(Icons.add, color: Colors.white),
+          child: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimary),
         ),
       ),
       body: _isLoading

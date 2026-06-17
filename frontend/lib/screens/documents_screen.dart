@@ -160,18 +160,21 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   }) {
     final screenWidth = MediaQuery.of(context).size.width;
     final cardWidth = screenWidth > 1400 ? 600.0 : (screenWidth > 1000 ? screenWidth * 0.42 : screenWidth * 0.9);
+    final theme = Theme.of(context);
 
     return Container(
       width: cardWidth,
       margin: const EdgeInsets.only(right: 20, bottom: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFFFBF9FF),
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.purple.withOpacity(0.05),
+            color: theme.colorScheme.primary.withOpacity(0.08),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            spreadRadius: 1,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -183,7 +186,15 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
                 if (trailing != null) trailing,
               ],
             ),
@@ -252,7 +263,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                   _buildStatCard(
                     title: 'Entity Documents',
                     icon: Icons.article,
-                    iconColor: Colors.blueAccent,
+                    iconColor: Theme.of(context).colorScheme.primary,
                     trailing: TextButton.icon(
                       onPressed: () async {
                         final encodedName = Uri.encodeComponent(_selectedEntity!['name_en']);
@@ -268,21 +279,21 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                       icon: const Icon(Icons.folder_open, size: 18),
                       label: const Text('Open Folder'),
                       style: TextButton.styleFrom(
-                        backgroundColor: Colors.blue.shade50,
-                        foregroundColor: Colors.blue.shade700,
+                        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                        foregroundColor: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     details: [
                       Text('Scraped Documents: ${_selectedEntity!['doc_count'] ?? 0}', style: const TextStyle(fontSize: 16)),
                       const SizedBox(height: 8),
-                      Text('Last Updated: ${_selectedEntity!['last_updated_at'] != null ? _selectedEntity!['last_updated_at'].toString().split('.').first.replaceAll('T', ' ') : 'Never'}', style: TextStyle(color: Colors.grey.shade700)),
+                      Text('Last Updated: ${_selectedEntity!['last_updated_at'] != null ? _selectedEntity!['last_updated_at'].toString().split('.').first.replaceAll('T', ' ') : 'Never'}', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7))),
                     ],
                   ),
                   
                   _buildStatCard(
                     title: 'Actions',
                     icon: Icons.settings,
-                    iconColor: Colors.green,
+                    iconColor: Theme.of(context).colorScheme.secondary,
                     details: [
                       Wrap(
                         spacing: 12,
@@ -292,19 +303,11 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                             icon: const Icon(Icons.download),
                             label: const Text('Start Web Scraping'),
                             onPressed: _triggerScrape,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                            ),
                           ),
                           ElevatedButton.icon(
                             icon: const Icon(Icons.upload_file),
                             label: const Text('Upload Document'),
                             onPressed: _uploadFile,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                            ),
                           ),
                           OutlinedButton.icon(
                             icon: const Icon(Icons.refresh),
@@ -324,9 +327,9 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
             
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
               ),
               constraints: const BoxConstraints(minHeight: 300),
               child: _isLoading
@@ -339,12 +342,12 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                             _buildNode(_tree!),
                           ],
                         )
-                      : const Center(
+                      : Center(
                           child: Padding(
-                            padding: EdgeInsets.all(32.0),
+                            padding: const EdgeInsets.all(32.0),
                             child: Text(
                               'No documents found for this entity. Click "Start Web Scraping" to fetch from web.',
-                              style: TextStyle(color: Colors.grey),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
                             ),
                           ),
                         ),

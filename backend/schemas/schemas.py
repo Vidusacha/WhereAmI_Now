@@ -76,6 +76,7 @@ class QuestionResponse(QuestionBase):
 class StaticSourceBase(BaseModel):
     url: str
     description: Optional[str] = None
+    source_type: str = "static"
 
 class StaticSourceCreate(StaticSourceBase):
     pass

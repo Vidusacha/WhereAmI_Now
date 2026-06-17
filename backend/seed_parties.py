@@ -84,21 +84,62 @@ async def seed_data():
         print("Successfully seeded initial political parties!")
 
         # Seed static sources
-        from sqlalchemy import select
+        from sqlalchemy import select, delete
         sources = [
-            {"url": "https://en.wikipedia.org/wiki/List_of_political_parties_in_Israel", "desc": "Wikipedia EN: List of parties"},
-            {"url": "https://he.wikipedia.org/wiki/%D7%9E%D7%A4%D7%9C%D7%92%D7%95%D7%AA_%D7%91%D7%99%D7%A9%D7%A8%D7%90%D7%9C", "desc": "Wikipedia HE: List of parties"},
-            {"url": "https://govil.ai/datasets/ebec1eda-e114-4f2e-b5fb-9766d10b890d/", "desc": "Govil AI Dataset for Elections"},
-            {"url": "https://www.idi.org.il/policy/parties-and-elections/", "desc": "Israel Democracy Institute: Parties and Elections"}
+            {"url": "https://en.wikipedia.org/wiki/List_of_political_parties_in_Israel", "desc": "Wikipedia EN: List of parties", "type": "static", "active": True},
+            {"url": "https://he.wikipedia.org/wiki/%D7%9E%D7%A4%D7%9C%D7%92%D7%95%D7%AA_%D7%91%D7%99%D7%A9%D7%A8%D7%90%D7%9C", "desc": "Wikipedia HE: List of parties", "type": "static", "active": True},
+            {"url": "https://govil.ai/datasets/ebec1eda-e114-4f2e-b5fb-9766d10b890d/", "desc": "Govil AI Dataset for Elections", "type": "static", "active": True},
+            {"url": "https://www.idi.org.il/policy/parties-and-elections/", "desc": "Israel Democracy Institute: Parties and Elections", "type": "static", "active": True},
+            
+            # Feedspot 18 RSS Feeds
+            {"url": "https://www.makorrishon.co.il/feed/", "desc": "Makor Rishon RSS Feed (HE)", "type": "rss", "active": False}, # 403 Forbidden
+            {"url": "https://www.haaretz.com/srv/haaretz-latest-headlines", "desc": "Haaretz RSS Feed (EN)", "type": "rss", "active": True},
+            {"url": "https://en.globes.co.il/WebService/Rss/RssFeeder.asmx/FeederNode?iID=942", "desc": "Globes RSS Feed (EN)", "type": "rss", "active": True},
+            {"url": "https://www.maariv.co.il/Rss/RssChadashot", "desc": "Maariv RSS Feed (HE)", "type": "rss", "active": True},
+            {"url": "https://www.jpost.com/Rss/RssFeedsFrontPage.aspx", "desc": "Jerusalem Post Front Page RSS Feed (EN)", "type": "rss", "active": True},
+            {"url": "https://www.jpost.com/Rss/RssFeedsHeadlines.aspx", "desc": "Jerusalem Post Headlines RSS Feed (EN)", "type": "rss", "active": True},
+            {"url": "https://www.israelnationalnews.com/Rss.aspx", "desc": "Israel National News RSS Feed (EN)", "type": "rss", "active": True},
+            {"url": "https://www.vesty.co.il/3rdparty/mobile/rss/vesty/13148/", "desc": "Vesty RSS Feed (RU)", "type": "rss", "active": True},
+            {"url": "https://cursorinfo.co.il/feed/", "desc": "Cursorinfo RSS Feed (RU)", "type": "rss", "active": True},
+            {"url": "https://www.davar1.co.il/feed/", "desc": "Davar RSS Feed (HE)", "type": "rss", "active": True},
+            {"url": "https://www.inn.co.il/Rss.aspx", "desc": "Channel 7 / Arutz Sheva RSS Feed (HE)", "type": "rss", "active": True},
+            {"url": "https://www.hamodia.com/feed", "desc": "Hamodia RSS Feed (EN)", "type": "rss", "active": False}, # 404 Not Found (under reconstruction)
+            {"url": "https://www.themarker.com/srv/tm-all-articles", "desc": "TheMarker RSS Feed (HE)", "type": "rss", "active": True}, # Working URL
+            {"url": "http://www.haaretz.co.il/feed/newsRss.xml", "desc": "Haaretz RSS Feed (HE)", "type": "rss", "active": False}, # 404 Not Found (restricted access)
+            {"url": "https://www.timesofisrael.com/feed/", "desc": "Times of Israel RSS Feed (EN)", "type": "rss", "active": True},
+            {"url": "https://www.kolhair.co.il/feed", "desc": "Kel Ha'ir / Kol Ha'ir RSS Feed (HE)", "type": "rss", "active": True},
+            {"url": "https://rss.walla.co.il/feed/1?type=main", "desc": "Walla RSS Feed (HE)", "type": "rss", "active": True},
+            {"url": "https://israelnewsagency.com/feed/", "desc": "Israel News Agency RSS Feed (EN)", "type": "rss", "active": False}, # 403 Forbidden
+            {"url": "https://www.debka.co.il/feed/", "desc": "DEBKAfile RSS Feed (HE)", "type": "rss", "active": True},
+
+            # Additional sources from danielrosehill/Israel-News-RSS-Feeds GitHub
+            {"url": "https://www.ynet.co.il/Integration/StoryRss2.xml", "desc": "Ynet RSS Feed (HE)", "type": "rss", "active": True},
+            {"url": "https://www.israelhayom.co.il/rss.xml", "desc": "Israel Hayom RSS Feed (HE)", "type": "rss", "active": True},
+            {"url": "https://www.bellingcat.com/feed/", "desc": "Bellingcat OSINT Feed (EN)", "type": "rss", "active": True},
+            {"url": "https://foreignpolicy.com/feed/", "desc": "Foreign Policy RSS Feed (EN)", "type": "rss", "active": True},
+            {"url": "https://news.un.org/feed/subscribe/en/news/region/middle-east/feed/rss.xml", "desc": "UN News - Middle East RSS Feed (EN)", "type": "rss", "active": True}
         ]
+
+        # Clean up old invalid/dead feeds if they exist in the database
+        await session.execute(delete(StaticSource).where(StaticSource.url == "https://www.inn.co.il/rss"))
+        await session.execute(delete(StaticSource).where(StaticSource.url == "https://www.themarker.com/feed"))
 
         for s in sources:
             query = select(StaticSource).where(StaticSource.url == s["url"])
             result = await session.execute(query)
             existing = result.scalar_one_or_none()
             if not existing:
-                new_src = StaticSource(url=s["url"], description=s["desc"])
+                new_src = StaticSource(
+                    url=s["url"], 
+                    description=s["desc"], 
+                    source_type=s["type"],
+                    is_active=s["active"]
+                )
                 session.add(new_src)
+            else:
+                existing.source_type = s["type"]
+                existing.description = s["desc"]
+                existing.is_active = s["active"]
         
         await session.commit()
         print("Successfully seeded static sources!")

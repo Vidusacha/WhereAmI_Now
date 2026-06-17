@@ -67,6 +67,7 @@ class StaticSource(Base):
     description = Column(Text, nullable=True)
     last_scraped_at = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
+    source_type = Column(String, default="static", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_modified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -78,6 +79,8 @@ class ScrapedDocument(Base):
     static_source_id = Column(Integer, ForeignKey("static_sources.id"), nullable=True) # If it came from a static source
     source_url = Column(String, nullable=False)
     file_path = Column(String, nullable=False) # Local or S3 path to the PDF/HTML
+    title = Column(String, nullable=True) # Title of the article/document
+    content = Column(Text, nullable=True) # Cleaned markdown content
     scraped_at = Column(DateTime, default=datetime.utcnow)
     
     entity = relationship("PoliticalEntity", back_populates="documents")

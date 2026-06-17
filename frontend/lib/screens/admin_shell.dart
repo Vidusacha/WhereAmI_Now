@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'system_screen.dart';
+import '../widgets/matrix_rain.dart';
 
 class AdminShell extends StatelessWidget {
   final Widget child;
@@ -10,12 +11,20 @@ class AdminShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF000500),
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('• WHERE_AMI.EXE •', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, letterSpacing: 2)),
       ),
-      body: Row(
+      body: Stack(
         children: [
+          // Subtle background matrix digital rain
+          const Positioned.fill(
+            child: MatrixRainBackground(opacity: 0.12),
+          ),
+          // Main layout content
+          Positioned.fill(
+            child: Row(
+              children: [
           NavigationRail(
             selectedIndex: _calculateSelectedIndex(context),
             onDestinationSelected: (int index) {
@@ -70,6 +79,9 @@ class AdminShell extends StatelessWidget {
           ),
           const VerticalDivider(thickness: 1, width: 1),
           Expanded(child: child),
+        ],
+            ),
+          ),
         ],
       ),
     );

@@ -263,10 +263,14 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.blue.shade100,
+                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
                                         borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
                                       ),
-                                      child: Text('Score: ${score['score']}'),
+                                      child: Text(
+                                        'Score: ${score['score']}',
+                                        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
                                     ),
                                     const SizedBox(width: 8),
                                     Container(
@@ -275,11 +279,13 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.green.shade100,
+                                        color: Theme.of(context).colorScheme.secondary.withOpacity(0.15),
                                         borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Theme.of(context).colorScheme.secondary.withOpacity(0.3)),
                                       ),
                                       child: Text(
                                         'Confidence: ${score['confidence']}',
+                                        style: TextStyle(color: Theme.of(context).colorScheme.secondary, fontSize: 12, fontWeight: FontWeight.bold),
                                       ),
                                     ),
                                   ],
@@ -500,18 +506,21 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
         (screenWidth > 1400
             ? 500.0
             : (screenWidth > 1000 ? screenWidth * 0.42 : screenWidth * 0.9));
+    final theme = Theme.of(context);
 
     return Container(
       width: cardWidth,
       margin: const EdgeInsets.only(right: 20, bottom: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFFFBF9FF),
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.purple.withOpacity(0.05),
+            color: theme.colorScheme.primary.withOpacity(0.08),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            spreadRadius: 1,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -523,15 +532,23 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                 ),
-                ?trailing,
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  trailing,
+                ],
               ],
             ),
             const SizedBox(height: 20),
@@ -661,17 +678,17 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: Colors.deepPurple,
+            color: Theme.of(context).colorScheme.primary,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.deepPurple.withOpacity(0.4),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: const Icon(Icons.add, color: Colors.white),
+          child: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimary),
         ),
       ),
       body: _isLoading
@@ -755,22 +772,22 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
                       return _buildStatCard(
                         title: mainName,
                         icon: Icons.account_balance,
-                        iconColor: Colors.deepPurple,
+                        iconColor: Theme.of(context).colorScheme.primary,
                         details: [
                           if (_displayLang != 'en')
                             Text(
                               'EN: ${e['name_en']}',
-                              style: TextStyle(color: Colors.grey.shade700),
+                              style: TextStyle(color: Theme.of(context).colorScheme.secondary),
                             ),
                           if (_displayLang != 'ru')
                             Text(
                               'RU: ${e['name_ru']}',
-                              style: TextStyle(color: Colors.grey.shade700),
+                              style: TextStyle(color: Theme.of(context).colorScheme.secondary),
                             ),
                           if (_displayLang != 'he')
                             Text(
                               'HE: ${e['name_he']}',
-                              style: TextStyle(color: Colors.grey.shade700),
+                              style: TextStyle(color: Theme.of(context).colorScheme.secondary),
                             ),
                           const SizedBox(height: 4),
                           Text(
@@ -789,7 +806,6 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
                                     _showAddOrEditDialog(entityToEdit: e),
                                 style: ElevatedButton.styleFrom(
                                   visualDensity: VisualDensity.compact,
-                                  backgroundColor: Colors.white,
                                 ),
                               ),
                               ElevatedButton.icon(
@@ -797,8 +813,6 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
                                 label: const Text('Discover Discourse'),
                                 onPressed: () => _discoverDiscourse(e['id']),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.purple.shade50,
-                                  foregroundColor: Colors.purple.shade800,
                                   visualDensity: VisualDensity.compact,
                                 ),
                               ),
@@ -810,8 +824,6 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
                                 label: const Text('Show Stances'),
                                 onPressed: () => _showStances(e['id']),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green.shade50,
-                                  foregroundColor: Colors.green.shade800,
                                   visualDensity: VisualDensity.compact,
                                 ),
                               ),
@@ -820,8 +832,6 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
                                 label: const Text('Show Log'),
                                 onPressed: () => _showDiscoveryLog(e['id']),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey.shade200,
-                                  foregroundColor: Colors.grey.shade800,
                                   visualDensity: VisualDensity.compact,
                                 ),
                               ),
@@ -830,8 +840,6 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
                                 label: const Text('Scrap'),
                                 onPressed: () => _triggerScrape(e['id']),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue.shade50,
-                                  foregroundColor: Colors.blue.shade800,
                                   visualDensity: VisualDensity.compact,
                                 ),
                               ),
@@ -852,7 +860,7 @@ class _EntitiesScreenState extends State<EntitiesScreen> {
                                 label: const Text('Remove'),
                                 onPressed: () => _deleteEntity(e['id']),
                                 style: TextButton.styleFrom(
-                                  foregroundColor: Colors.red,
+                                  foregroundColor: Colors.redAccent,
                                   visualDensity: VisualDensity.compact,
                                 ),
                               ),

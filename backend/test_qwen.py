@@ -6,6 +6,6 @@ payload = {
     'prompt': 'Translate these two Israeli political party names into English and Russian. Return strictly JSON: {"שלום": {"en": "...", "ru": "..."}, "מפלגת הליכוד": {"en": "...", "ru": "..."}}.',
     'stream': False
 }
-res = requests.post(OLLAMA_URL, json=payload, timeout=60)
+res = requests.post(OLLAMA_URL, json=payload, timeout=300)
 print('Response Status:', res.status_code)
 print('Response Body:', res.text)

@@ -58,9 +58,51 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'WhereAmI Admin',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: Colors.transparent,
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF00FF41), // Matrix bright green
+          onPrimary: Colors.black,
+          secondary: Color(0xFF008F11), // Darker green
+          onSecondary: Colors.white,
+          background: Color(0xFF000500),
+          onBackground: Color(0xFF00FF41),
+          surface: Color(0xFF071207), // Very dark green-black surface
+          onSurface: Color(0xFF00FF41),
+          error: Colors.redAccent,
+          onError: Colors.black,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF000500),
+          foregroundColor: Color(0xFF00FF41),
+          elevation: 0,
+        ),
+        navigationRailTheme: const NavigationRailThemeData(
+          backgroundColor: Colors.transparent,
+          selectedIconTheme: IconThemeData(color: Color(0xFF00FF41)),
+          unselectedIconTheme: IconThemeData(color: Color(0xFF008F11)),
+          selectedLabelTextStyle: TextStyle(color: Color(0xFF00FF41), fontFamily: 'monospace'),
+          unselectedLabelTextStyle: TextStyle(color: Color(0xFF008F11), fontFamily: 'monospace'),
+        ),
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(color: Color(0xFF00FF41), fontFamily: 'monospace', fontWeight: FontWeight.bold),
+          titleLarge: TextStyle(color: Color(0xFF00FF41), fontFamily: 'monospace', fontWeight: FontWeight.bold),
+          bodyLarge: TextStyle(color: Color(0xFF33FF33), fontFamily: 'monospace'),
+          bodyMedium: TextStyle(color: Color(0xFF33FF33), fontFamily: 'monospace'),
+        ),
+        inputDecorationTheme: const InputDecorationTheme(
+          labelStyle: TextStyle(color: Color(0xFF00FF41), fontFamily: 'monospace'),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Color(0xFF008F11)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Color(0xFF00FF41), width: 2),
+          ),
+        ),
+        dividerTheme: const DividerThemeData(
+          color: Color(0xFF008F11),
+          thickness: 1,
+        ),
       ),
       routerConfig: _router,
     );

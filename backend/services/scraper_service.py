@@ -9,7 +9,8 @@ async def cascade_scrape(url: str) -> str:
     """
     print(f"Scraping: {url}")
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-    async with aiohttp.ClientSession(headers=headers) as session:
+    connector = aiohttp.TCPConnector(ssl=False)
+    async with aiohttp.ClientSession(headers=headers, connector=connector) as session:
         async with session.get(url, timeout=10) as response:
             if response.status != 200:
                 raise Exception(f"Failed to fetch: HTTP {response.status}")

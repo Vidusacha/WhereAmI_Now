@@ -13,14 +13,29 @@ from services.scraper_service import cascade_scrape
 from services.ai_service import analyze_document_for_parties
 from database import async_session_maker
 
+import os
+from scripts.scrape_all_sources import scrape_all_sources
+
 async def background_scrape_and_analyze(url: str, source_id: int):
     print(f"Starting background scrape for {url}")
     try:
         # Step 1: Scrape (Cascade)
         content = await cascade_scrape(url)
+        content = content.replace("\x00", "").replace("\u0000", "")
         print(f"Extracted content length: {len(content)}")
 
-            
+        # Step 2: Save to local file & ScrapedDocument
+        dir_path = "/data/scraped_static"
+        os.makedirs(dir_path, exist_ok=True)
+        file_path = os.path.join(dir_path, f"{source_id}.md")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        # Extract title
+        lines = [l.strip() for l in content.split("\n") if l.strip()]
+        doc_title = lines[0].lstrip("#").strip().strip("*") if lines else "Static Webpage"
+        doc_title = doc_title.replace("\x00", "").replace("\u0000", "")
+
         # Step 3: Analyze with LLM
         parties_found = await analyze_document_for_parties(content)
         print(f"Ollama found parties: {parties_found}")
@@ -32,6 +47,27 @@ async def background_scrape_and_analyze(url: str, source_id: int):
             if source:
                 from datetime import datetime
                 source.last_scraped_at = datetime.utcnow()
+
+            # Create/update ScrapedDocument
+            chk_query = select(models.ScrapedDocument).where(models.ScrapedDocument.source_url == url)
+            chk_result = await session.execute(chk_query)
+            existing_doc = chk_result.scalar_one_or_none()
+            
+            if existing_doc:
+                existing_doc.file_path = file_path
+                existing_doc.title = doc_title[:500]
+                existing_doc.content = content
+                existing_doc.scraped_at = datetime.utcnow()
+            else:
+                new_doc = models.ScrapedDocument(
+                    static_source_id=source_id,
+                    source_url=url,
+                    file_path=file_path,
+                    title=doc_title[:500],
+                    content=content,
+                    scraped_at=datetime.utcnow()
+                )
+                session.add(new_doc)
                 
             # Create pending proposals
             for p in parties_found:
@@ -39,13 +75,14 @@ async def background_scrape_and_analyze(url: str, source_id: int):
                 if not party_id: continue
                 
                 # Check if exists
-                existing = await session.get(models.Party, party_id)
+                existing = await session.get(models.PoliticalEntity, party_id)
                 if not existing:
-                    new_party = models.Party(
+                    new_party = models.PoliticalEntity(
                         id=party_id,
                         name_en=p.get('name_en', ''),
                         name_ru=p.get('name_ru', ''),
                         name_he=p.get('name_he', ''),
+                        entity_type_id="party",
                         status=models.ApprovalStatus.PENDING_AI_PROPOSAL
                     )
                     session.add(new_party)
@@ -75,3 +112,11 @@ async def create_source(source: StaticSourceCreate, background_tasks: Background
     background_tasks.add_task(background_scrape_and_analyze, db_source.url, db_source.id)
     
     return db_source
+
+@router.post("/scrape_all")
+async def trigger_global_scrape(background_tasks: BackgroundTasks):
+    """
+    Triggers a global scraping job for all active RSS and static sources.
+    """
+    background_tasks.add_task(scrape_all_sources)
+    return {"status": "Global scraping job started in the background"}
