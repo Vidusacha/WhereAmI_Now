@@ -223,13 +223,93 @@ class _AxesScreenState extends State<AxesScreen> {
   }
 
   Future<void> _discoverDiscourseGlobal() async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Global Discover Discourse not yet implemented. Please run per-entity from Entities screen.',
-        ),
-      ),
-    );
+    setState(() => _isLoading = true);
+    try {
+      final res = await ApiService.discoverDiscourseGlobal();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res['status'] ?? 'Global discourse scoring started in the background.'),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        // Show the log dialog immediately so the user can see it starting
+        _showGlobalDiscourseLog();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _showGlobalDiscourseLog() async {
+    setState(() => _isLoading = true);
+    try {
+      String currentLog = await ApiService.getGlobalDiscourseLog();
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return StatefulBuilder(
+              builder: (context, setStateDialog) {
+                return AlertDialog(
+                  title: const Text('Global Discourse Scoring Log'),
+                  content: Container(
+                    width: 750,
+                    height: 500,
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(4.0),
+                    ),
+                    child: SingleChildScrollView(
+                      child: Text(
+                        currentLog,
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          color: Colors.greenAccent,
+                        ),
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () async {
+                        try {
+                          final newLog = await ApiService.getGlobalDiscourseLog();
+                          setStateDialog(() {
+                            currentLog = newLog;
+                          });
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to refresh: $e')),
+                          );
+                        }
+                      },
+                      child: const Text('Refresh'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                );
+              }
+            );
+          }
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _showGlobalDiscoveryLog() async {
@@ -283,6 +363,8 @@ class _AxesScreenState extends State<AxesScreen> {
             _discoverDiscourseGlobal();
           else if (val == 'show_log')
             _showGlobalDiscoveryLog();
+          else if (val == 'show_discourse_log')
+            _showGlobalDiscourseLog();
         },
         itemBuilder: (context) => [
           const PopupMenuItem(value: 'add', child: Text('Add New Axis')),
@@ -296,7 +378,11 @@ class _AxesScreenState extends State<AxesScreen> {
           ),
           const PopupMenuItem(
             value: 'show_log',
-            child: Text('Show Discovery Discourse Log'),
+            child: Text('Show Unsupervised Discovery Log'),
+          ),
+          const PopupMenuItem(
+            value: 'show_discourse_log',
+            child: Text('Show Global Discourse Log'),
           ),
         ],
         child: Container(

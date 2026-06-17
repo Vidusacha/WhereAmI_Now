@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from database import get_db
+from database import get_db, async_session_maker
 from models import PoliticalEntity, Axis, EntityScore, ApprovalStatus, ScrapedDocument
 from schemas.schemas import DiscoveryResponse
 from services.search_service import search_google_pse, fetch_latest_news_rss, search_local_documents
@@ -19,6 +20,218 @@ async def get_global_discovery_log():
         with open(log_path, "r", encoding="utf-8") as f:
             return {"log": f.read()}
     return {"log": "No unsupervised discovery log found. Run 'Unsupervised Axis Discovery' first."}
+
+async def background_discover_discourse_global(session_maker):
+    """
+    Background job to score all approved entities on all approved axes.
+    """
+    log_path = "/data/entities/general_news/global_discourse_log.txt"
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    
+    def write_log(message: str, mode: str = "a"):
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(log_path, mode, encoding="utf-8") as f:
+            f.write(f"[{timestamp}] {message}\n")
+            
+    write_log("=== GLOBAL DISCOURSE SCORING JOB STARTED ===", mode="w")
+    
+    try:
+        async with session_maker() as session:
+            # 1. Fetch all approved entities
+            entities_result = await session.execute(
+                select(PoliticalEntity).where(PoliticalEntity.status == ApprovalStatus.APPROVED)
+            )
+            approved_entities = entities_result.scalars().all()
+            
+            # 2. Fetch all approved axes
+            axes_result = await session.execute(
+                select(Axis).where(Axis.status == ApprovalStatus.APPROVED)
+            )
+            approved_axes = axes_result.scalars().all()
+            
+            write_log(f"Found {len(approved_entities)} approved entities and {len(approved_axes)} approved axes to score.")
+            
+            if not approved_entities or not approved_axes:
+                write_log("Nothing to score. Completing job.")
+                return
+                
+            total_tasks = len(approved_entities) * len(approved_axes)
+            current_task = 0
+            
+            for entity in approved_entities:
+                entity_id = entity.id
+                entity_name_en = entity.name_en
+                entity_name_ru = entity.name_ru
+                entity_name_he = entity.name_he
+                
+                write_log(f"\n>> Start scoring for entity: {entity_name_en} ({entity_id})")
+                
+                for axis in approved_axes:
+                    axis_id = axis.id
+                    axis_name_en = axis.name_en
+                    axis_name_ru = axis.name_ru
+                    axis_name_he = axis.name_he
+                    
+                    current_task += 1
+                    write_log(f"[{current_task}/{total_tasks}] Scoring {entity_name_en} on Axis {axis_name_en}...")
+                    
+                    try:
+                        # Search local documents
+                        local_docs = await search_local_documents(
+                            entity_name_en=entity_name_en,
+                            entity_name_ru=entity_name_ru,
+                            entity_name_he=entity_name_he,
+                            axis_name_en=axis_name_en,
+                            axis_name_ru=axis_name_ru,
+                            axis_name_he=axis_name_he,
+                            db=session,
+                            limit=5
+                        )
+                        
+                        scraped_texts = []
+                        for doc in local_docs:
+                            text = doc.content
+                            if not text and doc.file_path:
+                                resolved_path = doc.file_path
+                                if not resolved_path.startswith("/"):
+                                    for root_dir in ["/data/scraped_documents", "/data", "/app/data/scraped_documents"]:
+                                        cand = os.path.join(root_dir, resolved_path)
+                                        if os.path.exists(cand):
+                                            resolved_path = cand
+                                            break
+                                if os.path.exists(resolved_path):
+                                    try:
+                                        with open(resolved_path, "r", encoding="utf-8") as f:
+                                            text = f.read()
+                                    except:
+                                        pass
+                            if text:
+                                scraped_texts.append(text)
+                                
+                        if not scraped_texts:
+                            write_log(f"  No local documents found. Attempting Google PSE fallback...")
+                            queries = await generate_search_queries(entity_name_en, axis_name_en)
+                            if not queries:
+                                write_log(f"  Failed to generate queries. Skipping.")
+                                continue
+                                
+                            urls = await search_google_pse(queries[0], max_results=3)
+                            write_log(f"  Google PSE found URLs: {urls}")
+                            
+                            for url in urls:
+                                try:
+                                    file_path = await scrape_url(url, entity_id=entity_id)
+                                    write_log(f"  Successfully scraped: {url}")
+                                    
+                                    with open(file_path, "r", encoding="utf-8") as f:
+                                        file_content = f.read()
+                                        
+                                    file_content = file_content.replace("\x00", "").replace("\u0000", "")
+                                    lines = [l.strip() for l in file_content.split("\n") if l.strip()]
+                                    doc_title = lines[0].lstrip("#").strip().strip("*") if lines else "Scraped Article"
+                                    doc_title = doc_title.replace("\x00", "").replace("\u0000", "")
+                                    
+                                    new_doc = ScrapedDocument(
+                                        entity_id=entity_id,
+                                        axis_id=axis_id,
+                                        source_url=url,
+                                        file_path=file_path,
+                                        title=doc_title[:500],
+                                        content=file_content
+                                    )
+                                    session.add(new_doc)
+                                    await session.commit()
+                                    scraped_texts.append(file_content)
+                                except Exception as e:
+                                    write_log(f"  Failed to scrape fallback URL {url}: {e}")
+                                    await session.rollback()
+                                    
+                        if not scraped_texts:
+                            write_log(f"  No texts available for scoring. Skipping.")
+                            continue
+                            
+                        write_log(f"  Scoring using AI...")
+                        ai_result = await score_entity_on_axis(entity_name_en, axis_name_en, scraped_texts)
+                        write_log(f"  AI result: score={ai_result.get('score')}, confidence={ai_result.get('confidence')}")
+                        
+                        score_res = await session.execute(
+                            select(EntityScore).where(
+                                EntityScore.entity_id == entity_id,
+                                EntityScore.axis_id == axis_id
+                            )
+                        )
+                        existing_score = score_res.scalar_one_or_none()
+                        
+                        score_val = ai_result.get("score")
+                        if score_val is None:
+                            score_val = 0.0
+                        else:
+                            try:
+                                score_val = float(score_val)
+                            except:
+                                score_val = 0.0
+
+                        confidence_val = ai_result.get("confidence")
+                        if confidence_val is None:
+                            confidence_val = 0.0
+                        else:
+                            try:
+                                confidence_val = float(confidence_val)
+                            except:
+                                confidence_val = 0.0
+
+                        just_en = ai_result.get("justification_en") or ""
+                        just_ru = ai_result.get("justification_ru") or ""
+                        just_he = ai_result.get("justification_he") or ""
+                        
+                        if existing_score:
+                            existing_score.score = score_val
+                            existing_score.confidence = confidence_val
+                            existing_score.justification_en = just_en
+                            existing_score.justification_ru = just_ru
+                            existing_score.justification_he = just_he
+                            write_log(f"  Updated existing score in database.")
+                        else:
+                            new_score = EntityScore(
+                                entity_id=entity_id,
+                                axis_id=axis_id,
+                                score=score_val,
+                                confidence=confidence_val,
+                                justification_en=just_en,
+                                justification_ru=just_ru,
+                                justification_he=just_he
+                            )
+                            session.add(new_score)
+                            write_log(f"  Created new score in database.")
+                            
+                        await session.commit()
+                        
+                    except Exception as ex:
+                        write_log(f"  ERROR processing axis '{axis_name_en}': {ex}")
+                        await session.rollback()
+                        
+            write_log("=== GLOBAL DISCOURSE SCORING JOB COMPLETED SUCCESSFULLY ===")
+    except Exception as e:
+        write_log(f"CRITICAL ERROR in background global scoring: {e}")
+
+
+@router.post("/discourse/all")
+async def discover_discourse_all(background_tasks: BackgroundTasks):
+    """
+    Triggers global scoring for all approved entities on all approved axes.
+    """
+    background_tasks.add_task(background_discover_discourse_global, async_session_maker)
+    return {"status": "Global discourse scoring job started in the background"}
+
+
+@router.get("/global_discourse_log")
+async def get_global_discourse_log():
+    log_path = "/data/entities/general_news/global_discourse_log.txt"
+    if os.path.exists(log_path):
+        with open(log_path, "r", encoding="utf-8") as f:
+            return {"log": f.read()}
+    return {"log": "No global discourse scoring log found. Click 'Discover Discourse (All Entities)' to start."}
+
 
 @router.post("/discourse/{entity_id}", response_model=DiscoveryResponse)
 async def discover_discourse(entity_id: str, db: AsyncSession = Depends(get_db)):
@@ -283,4 +496,7 @@ async def discover_new_axes(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         logs.append(f"Error during axis discovery: {e}")
         return {"status": "Error", "logs": logs, "discovered_axes": []}
+
+
+
 

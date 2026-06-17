@@ -87,6 +87,22 @@ class ApiService {
     throw Exception('Failed to fetch global discovery log');
   }
 
+  static Future<Map<String, dynamic>> discoverDiscourseGlobal() async {
+    final response = await http.post(Uri.parse('$baseUrl/discovery/discourse/all'));
+    if (response.statusCode != 200) {
+      throw Exception('Failed to start global discourse scoring: ${response.body}');
+    }
+    return jsonDecode(response.body);
+  }
+
+  static Future<String> getGlobalDiscourseLog() async {
+    final response = await http.get(Uri.parse('$baseUrl/discovery/global_discourse_log'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body)['log'];
+    }
+    throw Exception('Failed to fetch global discourse log');
+  }
+
   static Future<Map<String, dynamic>> deduplicateEntities() async {
     final response = await http.post(Uri.parse('$baseUrl/maintenance/deduplicate/entities'));
     if (response.statusCode == 200) {

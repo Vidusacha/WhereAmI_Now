@@ -140,6 +140,85 @@ class _SystemScreenState extends State<SystemScreen> {
     );
   }
 
+  Future<void> _showGlobalDiscourseLogDialog() async {
+    try {
+      String logContent = await ApiService.getGlobalDiscourseLog();
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return StatefulBuilder(
+              builder: (context, setStateDialog) {
+                return AlertDialog(
+                  backgroundColor: const Color(0xFF000500),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: const BorderSide(color: Color(0xFF00FF41), width: 1.5),
+                  ),
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'GLOBAL DISCOURSE LOG',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          color: Color(0xFF00FF41),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh, color: Color(0xFF00FF41)),
+                        onPressed: () async {
+                          try {
+                            final newLog = await ApiService.getGlobalDiscourseLog();
+                            setStateDialog(() {
+                              logContent = newLog;
+                            });
+                          } catch (_) {}
+                        },
+                      ),
+                    ],
+                  ),
+                  content: Container(
+                    width: 800,
+                    height: 500,
+                    color: Colors.black,
+                    padding: const EdgeInsets.all(16),
+                    child: SingleChildScrollView(
+                      child: Text(
+                        logContent.isEmpty ? "No global discourse log found." : logContent,
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          color: Color(0xFF33FF33),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text(
+                        'CLOSE',
+                        style: TextStyle(color: Color(0xFF00FF41), fontFamily: 'monospace'),
+                      ),
+                    ),
+                  ],
+                );
+              }
+            );
+          }
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching global discourse log: $e')),
+        );
+      }
+    }
+  }
+
   BoxDecoration _matrixBoxDecoration({double opacity = 0.4}) {
     return BoxDecoration(
       color: const Color(0xFF071207),
@@ -682,14 +761,37 @@ class _SystemScreenState extends State<SystemScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'SYSTEM ACTIVITY',
-                                style: TextStyle(
-                                  color: Color(0xFF00FF41),
-                                  fontFamily: 'monospace',
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'SYSTEM ACTIVITY',
+                                    style: TextStyle(
+                                      color: Color(0xFF00FF41),
+                                      fontFamily: 'monospace',
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  ElevatedButton.icon(
+                                    onPressed: _showGlobalDiscourseLogDialog,
+                                    icon: const Icon(Icons.analytics, size: 14, color: Colors.black),
+                                    label: const Text(
+                                      'GLOBAL DISCOURSE LOG',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF00FF41),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 20),
                               if (activityLogs.isEmpty)
