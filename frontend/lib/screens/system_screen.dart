@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
+import '../main.dart';
 
 class SystemScreen extends StatefulWidget {
   const SystemScreen({super.key});
@@ -19,12 +20,22 @@ class _SystemScreenState extends State<SystemScreen> {
   Map<String, dynamic>? _ollamaStats;
   String _error = '';
   String _activeTab = 'Overview'; // Track active tab like in Figma design
-  String _displayLang = 'EN'; // Selected language in header (EN, RU, HE)
 
   @override
   void initState() {
     super.initState();
+    appLanguageNotifier.addListener(_onLanguageChanged);
     _fetchSystemStats();
+  }
+
+  @override
+  void dispose() {
+    appLanguageNotifier.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _fetchSystemStats() async {
@@ -409,25 +420,23 @@ class _SystemScreenState extends State<SystemScreen> {
                 // Language buttons
                 Row(
                   children: ['EN', 'RU', 'HE'].map((lang) {
-                    final isActive = _displayLang == lang;
+                    final isActive = appLanguageNotifier.value == lang;
                     return GestureDetector(
                       onTap: () {
-                        setState(() {
-                          _displayLang = lang;
-                        });
+                        appLanguageNotifier.value = lang;
                       },
                       child: Container(
                         margin: const EdgeInsets.only(left: 10),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isActive ? const Color(0xFF00FF41) : Colors.transparent,
+                          color: isActive ? Theme.of(context).colorScheme.primary : Colors.transparent,
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFF00FF41), width: 1),
+                          border: Border.all(color: Theme.of(context).colorScheme.primary, width: 1),
                         ),
                         child: Text(
                           lang,
                           style: TextStyle(
-                            color: isActive ? Colors.black : const Color(0xFF00FF41),
+                            color: isActive ? Colors.black : Theme.of(context).colorScheme.primary,
                             fontFamily: 'monospace',
                             fontWeight: FontWeight.bold,
                             fontSize: 13,

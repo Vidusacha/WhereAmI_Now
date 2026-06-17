@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../main.dart';
 
 class AxesScreen extends StatefulWidget {
   const AxesScreen({super.key});
@@ -15,7 +16,18 @@ class _AxesScreenState extends State<AxesScreen> {
   @override
   void initState() {
     super.initState();
+    appLanguageNotifier.addListener(_onLanguageChanged);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    appLanguageNotifier.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadData() async {
@@ -268,10 +280,10 @@ class _AxesScreenState extends State<AxesScreen> {
                     child: SingleChildScrollView(
                       child: Text(
                         currentLog,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 12,
-                          color: Colors.greenAccent,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                         ),
                       ),
                     ),
@@ -405,8 +417,67 @@ class _AxesScreenState extends State<AxesScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24),
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'IDEOLOGICAL AXES',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontFamily: 'monospace',
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2.0,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'System Telemetry: AXIS_DISCOVERY_MODULE_ACTIVE',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontFamily: 'monospace',
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: ['EN', 'RU', 'HE'].map((lang) {
+                        final isActive = appLanguageNotifier.value == lang;
+                        return GestureDetector(
+                          onTap: () {
+                            appLanguageNotifier.value = lang;
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(left: 10),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isActive ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Theme.of(context).colorScheme.primary, width: 1),
+                            ),
+                            child: Text(
+                              lang,
+                              style: TextStyle(
+                                color: isActive ? Colors.black : Theme.of(context).colorScheme.primary,
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
                 DataTable(
                   columns: const [
                     DataColumn(label: Text('ID')),

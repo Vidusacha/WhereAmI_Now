@@ -8,12 +8,35 @@ class AdminShell extends StatelessWidget {
 
   const AdminShell({super.key, required this.child});
 
+  String _getDynamicTitle(BuildContext context) {
+    final String location = GoRouterState.of(context).uri.path;
+    if (location.startsWith('/entities')) {
+      return '* Where Am I * Entities *';
+    }
+    if (location.startsWith('/entity-types')) {
+      return '* Where Am I * Entity Types *';
+    }
+    if (location.startsWith('/axes')) {
+      return '* Where Am I * Axes *';
+    }
+    if (location.startsWith('/questions')) {
+      return '* Where Am I * Questions *';
+    }
+    if (location.startsWith('/documents')) {
+      return '* Where Am I * Documents *';
+    }
+    if (location.startsWith('/system')) {
+      return '* Where Am I * System *';
+    }
+    return '* Where Am I *';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF000500),
       appBar: AppBar(
-        title: const Text('• WHERE_AMI.EXE •', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, letterSpacing: 2)),
+        title: Text(_getDynamicTitle(context), style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, letterSpacing: 2)),
       ),
       body: Stack(
         children: [

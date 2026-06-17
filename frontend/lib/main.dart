@@ -10,6 +10,8 @@ import 'screens/documents_screen.dart';
 
 import 'screens/system_screen.dart';
 
+final ValueNotifier<String> appLanguageNotifier = ValueNotifier<String>('EN');
+
 void main() {
   runApp(const MyApp());
 }
@@ -56,55 +58,86 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'WhereAmI Admin',
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.transparent,
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF00FF41), // Matrix bright green
-          onPrimary: Colors.black,
-          secondary: Color(0xFF008F11), // Darker green
-          onSecondary: Colors.white,
-          background: Color(0xFF000500),
-          onBackground: Color(0xFF00FF41),
-          surface: Color(0xFF071207), // Very dark green-black surface
-          onSurface: Color(0xFF00FF41),
-          error: Colors.redAccent,
-          onError: Colors.black,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF000500),
-          foregroundColor: Color(0xFF00FF41),
-          elevation: 0,
-        ),
-        navigationRailTheme: const NavigationRailThemeData(
-          backgroundColor: Colors.transparent,
-          selectedIconTheme: IconThemeData(color: Color(0xFF00FF41)),
-          unselectedIconTheme: IconThemeData(color: Color(0xFF008F11)),
-          selectedLabelTextStyle: TextStyle(color: Color(0xFF00FF41), fontFamily: 'monospace'),
-          unselectedLabelTextStyle: TextStyle(color: Color(0xFF008F11), fontFamily: 'monospace'),
-        ),
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(color: Color(0xFF00FF41), fontFamily: 'monospace', fontWeight: FontWeight.bold),
-          titleLarge: TextStyle(color: Color(0xFF00FF41), fontFamily: 'monospace', fontWeight: FontWeight.bold),
-          bodyLarge: TextStyle(color: Color(0xFF33FF33), fontFamily: 'monospace'),
-          bodyMedium: TextStyle(color: Color(0xFF33FF33), fontFamily: 'monospace'),
-        ),
-        inputDecorationTheme: const InputDecorationTheme(
-          labelStyle: TextStyle(color: Color(0xFF00FF41), fontFamily: 'monospace'),
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFF008F11)),
+    return ValueListenableBuilder<String>(
+      valueListenable: appLanguageNotifier,
+      builder: (context, lang, _) {
+        Color primaryColor;
+        Color bodyColor;
+        Color secondaryColor;
+        Color backgroundColor;
+        Color surfaceColor;
+
+        if (lang == 'RU') {
+          primaryColor = const Color(0xFF00FFB3); // Teal/Emerald bright
+          bodyColor = const Color(0xFF00CC8F);    // Muted Emerald
+          secondaryColor = const Color(0xFF005F43);
+          backgroundColor = const Color(0xFF000502);
+          surfaceColor = const Color(0xFF02100A);
+        } else if (lang == 'HE') {
+          primaryColor = const Color(0xFFADFF2F); // Lime/Green-Yellow bright
+          bodyColor = const Color(0xFF99CC33);    // Muted Olive/Lime
+          secondaryColor = const Color(0xFF4F7A28);
+          backgroundColor = const Color(0xFF030500);
+          surfaceColor = const Color(0xFF0A1002);
+        } else { // 'EN'
+          primaryColor = const Color(0xFF00FF41); // Classic bright Matrix
+          bodyColor = const Color(0xFF33CC33);    // Less bright body green
+          secondaryColor = const Color(0xFF005F0F);
+          backgroundColor = const Color(0xFF000500);
+          surfaceColor = const Color(0xFF021002);
+        }
+
+        return MaterialApp.router(
+          title: 'WhereAmI Admin',
+          theme: ThemeData.dark().copyWith(
+            scaffoldBackgroundColor: Colors.transparent,
+            colorScheme: ColorScheme.dark(
+              primary: primaryColor,
+              onPrimary: Colors.black,
+              secondary: secondaryColor,
+              onSecondary: Colors.white,
+              background: backgroundColor,
+              onBackground: primaryColor,
+              surface: surfaceColor,
+              onSurface: primaryColor,
+              error: Colors.redAccent,
+              onError: Colors.black,
+            ),
+            appBarTheme: AppBarTheme(
+              backgroundColor: backgroundColor,
+              foregroundColor: primaryColor,
+              elevation: 0,
+            ),
+            navigationRailTheme: NavigationRailThemeData(
+              backgroundColor: Colors.transparent,
+              selectedIconTheme: IconThemeData(color: primaryColor),
+              unselectedIconTheme: IconThemeData(color: secondaryColor),
+              selectedLabelTextStyle: TextStyle(color: primaryColor, fontFamily: 'monospace'),
+              unselectedLabelTextStyle: TextStyle(color: secondaryColor, fontFamily: 'monospace'),
+            ),
+            textTheme: TextTheme(
+              displayLarge: TextStyle(color: primaryColor, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+              titleLarge: TextStyle(color: primaryColor, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+              bodyLarge: TextStyle(color: bodyColor, fontFamily: 'monospace'),
+              bodyMedium: TextStyle(color: bodyColor, fontFamily: 'monospace'),
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              labelStyle: TextStyle(color: primaryColor, fontFamily: 'monospace'),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: secondaryColor),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: primaryColor, width: 2),
+              ),
+            ),
+            dividerTheme: DividerThemeData(
+              color: secondaryColor,
+              thickness: 1,
+            ),
           ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFF00FF41), width: 2),
-          ),
-        ),
-        dividerTheme: const DividerThemeData(
-          color: Color(0xFF008F11),
-          thickness: 1,
-        ),
-      ),
-      routerConfig: _router,
+          routerConfig: _router,
+        );
+      },
     );
   }
 }
